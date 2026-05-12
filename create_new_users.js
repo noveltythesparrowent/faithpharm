@@ -67,7 +67,7 @@ const run = async () => {
                 email: 'Cashier@faithway.com',
                 password: 'Cashier2026',
                 role: 'cashier',
-                location: 'Accra Branch'
+                location: process.env.MAIN_BRANCH_LOCATION || 'Amasaman'
             }
         ];
 

@@ -207,7 +207,7 @@ const run = async () => {
                 'INSERT INTO users (name, email, password, role, store_location) VALUES ($1, $2, $3, $4, $5)',
                 ['Kelvin Van-Dyck (Cashier)', cashierEmail, cashierHash, 'cashier', process.env.MAIN_BRANCH_LOCATION || 'Amasaman']
             );
-            console.log(`Cashier created successfully.\nEmail: ${cashierEmail}\nStore: Accra Branch`);
+            console.log(`Cashier created successfully.\nEmail: ${cashierEmail}\nStore: Amasaman`);
         } else {
             await pool.query('UPDATE users SET name = $4, password = $1, store_location = $3 WHERE email = $2', [cashierHash, cashierEmail, process.env.MAIN_BRANCH_LOCATION || 'Amasaman', 'Kelvin Van-Dyck (Cashier)']);
             console.log(`Cashier user updated.`);
