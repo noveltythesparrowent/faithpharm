@@ -675,7 +675,10 @@ async function initDb() {
                 END IF;
             END $$;
 
-
+            -- Insert default settings if not exists (Branch 1)
+            INSERT INTO system_settings (id, branch_id, store_name, currency_symbol, vat_rate, receipt_footer)
+            VALUES (1, 1, 'Faith Pharmacy', '₵ (GHS)', 0.00, 'Thank you for shopping with us!')
+            ON CONFLICT (id) DO NOTHING;
 
             -- Create Customer Ledger Table (Part 2 Implementation)
             CREATE TABLE IF NOT EXISTS customer_ledger (
