@@ -335,10 +335,10 @@ async function initDb() {
             );
             
             -- Seed default branches if empty
-            INSERT INTO branches (id, name, location) VALUES (1, 'Dzorwulu', 'Dzorwulu') ON CONFLICT (id) DO NOTHING;
+            INSERT INTO branches (id, name, location) VALUES (1, '${process.env.MAIN_BRANCH_LOCATION || 'Amasaman'}', '${process.env.MAIN_BRANCH_LOCATION || 'Amasaman'}') ON CONFLICT (id) DO NOTHING;
             
             -- Force update legacy initializations
-            UPDATE branches SET name = 'Dzorwulu', location = 'Dzorwulu' WHERE id = 1 AND name = 'Main Warehouse';
+            UPDATE branches SET name = '${process.env.MAIN_BRANCH_LOCATION || 'Amasaman'}', location = '${process.env.MAIN_BRANCH_LOCATION || 'Amasaman'}' WHERE id = 1 AND (name = 'Main Warehouse' OR name = 'Dzorwulu');
             -- No additional dummy branches will be forced into the database.
             -- FIX: Sync branches_id_seq with the actual max id to prevent duplicate key errors
             SELECT setval(pg_get_serial_sequence('branches', 'id'), COALESCE((SELECT MAX(id) FROM branches), 1));
@@ -389,6 +389,7 @@ async function initDb() {
                     ALTER TABLE products DROP CONSTRAINT IF EXISTS products_barcode_name_key CASCADE;
                     -- Ensure deleted_at column exists BEFORE creating the partial index that references it
                     ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+                    ALTER TABLE products ADD COLUMN IF NOT EXISTS tenant_id INT DEFAULT 1;
                     -- Drop old index (may have wrong definition) and recreate with barcode+name
                     DROP INDEX IF EXISTS products_barcode_active_idx;
                     CREATE UNIQUE INDEX IF NOT EXISTS products_barcode_active_idx
@@ -674,10 +675,7 @@ async function initDb() {
                 END IF;
             END $$;
 
-            -- Insert default settings if not exists
-            INSERT INTO system_settings (id, branch_id, store_name, currency_symbol, vat_rate, receipt_footer)
-            VALUES (1, 1, 'Footprint Retail Systems', '₵ (GHS)', 15.00, 'Thank you for shopping with us!')
-            ON CONFLICT (id) DO NOTHING;
+
 
             -- Create Customer Ledger Table (Part 2 Implementation)
             CREATE TABLE IF NOT EXISTS customer_ledger (
@@ -726,7 +724,6 @@ async function initDb() {
             ALTER TABLE suppliers     ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
             ALTER TABLE customers     ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
             ALTER TABLE branches      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-            ALTER TABLE tax_rules     ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
             ALTER TABLE promotions    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
             -- Partial unique indexes: uniqueness ONLY enforced on active (non-deleted) records.
@@ -737,6 +734,7 @@ async function initDb() {
                 ON users(username) WHERE deleted_at IS NULL AND username IS NOT NULL;
             CREATE UNIQUE INDEX IF NOT EXISTS users_employee_id_active_idx
                 ON users(employee_id) WHERE deleted_at IS NULL AND employee_id IS NOT NULL;
+            ALTER TABLE promotions ADD COLUMN IF NOT EXISTS tenant_id INT DEFAULT 1;
             CREATE UNIQUE INDEX IF NOT EXISTS promotions_code_tenant_active_idx
                 ON promotions(code, tenant_id) WHERE deleted_at IS NULL;
             CREATE UNIQUE INDEX IF NOT EXISTS customers_account_number_active_idx
@@ -947,6 +945,9 @@ async function initDb() {
             -- Migration: Set branch_id = 1 for any legacy rules where it is currently NULL
             -- This prevents them from leaking into other portals/branches
             UPDATE tax_rules SET branch_id = 1 WHERE branch_id IS NULL;
+            
+            -- Add soft-delete column for tax_rules
+            ALTER TABLE tax_rules ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
         `);
         // MULTI-TENANT ISOLATION MIGRATIONS
         await pool.query(`
@@ -977,24 +978,7 @@ async function initDb() {
             UPDATE promotions SET tenant_id = 1 WHERE tenant_id IS NULL;
         `);
 
-        // Create Default CEO User if not exists
-        try {
-            const ceoCheck = await pool.query("SELECT id FROM users WHERE email = 'ceo@footprint.com'");
-            console.log('CEO check result:', ceoCheck.rows.length);
-            if (ceoCheck.rows.length === 0) {
-                const defaultPass = process.env.DEFAULT_ADMIN_PASS || 'ceo123';
-                console.log('Creating CEO user...');
-                const salt = await bcrypt.genSalt(10);
-                const hash = await bcrypt.hash(defaultPass, salt);
-                await pool.query(
-                    "INSERT INTO users (name, email, password, role, store_location, status) VALUES ($1, $2, $3, $4, $5, 'Active')",
-                    ['Chief Executive Officer', 'ceo@footprint.com', hash, 'ceo', 'Headquarters']
-                );
-                console.log('Default CEO user created: ceo@footprint.com');
-            }
-        } catch (ceoErr) {
-            console.error('CEO creation error:', ceoErr);
-        }
+
 
         // SaaS MULTI-TENANT ARCHITECTURE LOOP
         // Natively inject tenant_id global sandboxes across all 28 operational tables
@@ -1367,8 +1351,8 @@ app.post('/login', loginLimiter, [
             name: user.name,
             role: normalizedRole,
             tenant_id: user.tenant_id || 1,
-            store_id: user.store_id || (normalizedRole === 'admin' || normalizedRole === 'ceo' ? 1 : null), // Ensure High-level users have a default store context
-            store_location: user.store_location || (normalizedRole === 'admin' || normalizedRole === 'ceo' ? 'Headquarters' : null) // Ensure High-level users have a default view context
+            store_id: user.store_id || (['admin', 'ceo', 'manager'].includes(normalizedRole) ? 1 : null), // Ensure High-level users have a default store context
+            store_location: user.store_location || (['admin', 'ceo', 'manager'].includes(normalizedRole) ? (process.env.MAIN_BRANCH_LOCATION || 'Amasaman') : null) // Ensure High-level users have a default view context
         };
 
         // Log Login Activity
@@ -1612,11 +1596,15 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
         const userRes = await pool.query('SELECT status FROM users WHERE id = $1', [id]);
         const currentStatus = userRes.rows[0]?.status;
 
+        // Convert empty strings to null to prevent unique constraint violations on ''
+        const dbUsername = username && username.trim() !== '' ? username.trim() : null;
+        const dbPhone = phone && phone.trim() !== '' ? phone.trim() : null;
+        
         await pool.query(`
             UPDATE users 
             SET name = $1, username = $2, email = $3, phone = $4, role = $5, store_location = $6, store_id = $7, status = $8
             WHERE id = $9
-        `, [fullName, username, email, phone, role.toLowerCase(), store, storeId, status, id]);
+        `, [fullName, dbUsername, email, dbPhone, role.toLowerCase(), store, storeId, status, id]);
 
         let action = 'UPDATE_USER';
         if (status && currentStatus !== status) {
@@ -1629,7 +1617,10 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
         res.json({ success: true, message: 'User updated successfully' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Error updating user' });
+        if (err.code === '23505') {
+            return res.status(400).json({ message: 'Username, Email or Employee ID already exists' });
+        }
+        res.status(500).json({ message: 'Error updating user: ' + err.message });
     }
 });
 
@@ -2318,9 +2309,9 @@ app.get('/api/products/full', authenticateToken, async (req, res) => {
         let userBranch = dbUser.store_location || req.user.store_location || 'Main Warehouse';
         const isRestricted = req.user.role !== 'admin' && req.user.role !== 'ceo';
 
-        // Core mapping: Always link external company portals directly to the primary Dzorwulu warehouse
+        // Core mapping: Always link external company portals directly to the primary warehouse
         if (req.user.role === 'business_client' || req.user.type === 'company') {
-            userBranch = 'Dzorwulu';
+            userBranch = process.env.MAIN_BRANCH_LOCATION || 'Amasaman';
         }
 
         // Ensure all products have stock_levels initialized
@@ -4144,7 +4135,7 @@ app.get('/transactions/:id', authenticateToken, async (req, res) => {
             const branchId = txn.store_id || req.user.store_id || 1;
             let settingsRes = await pool.query('SELECT vat_rate FROM system_settings WHERE branch_id = $1', [branchId]);
             if (settingsRes.rows.length === 0) settingsRes = await pool.query('SELECT vat_rate FROM system_settings WHERE branch_id = 1');
-            const vatRate = settingsRes.rows.length > 0 ? parseFloat(settingsRes.rows[0].vat_rate) : 15.0;
+            const vatRate = settingsRes.rows.length > 0 ? parseFloat(settingsRes.rows[0].vat_rate) : 0.0;
 
             const total = parseFloat(txn.total_amount);
             totalTax = total - (total / (1 + (vatRate / 100)));
@@ -4724,7 +4715,7 @@ app.post('/api/ceo/target', authenticateToken, async (req, res) => {
     try {
         await pool.query(`
             INSERT INTO system_settings (id, branch_id, store_name, currency_symbol, vat_rate, receipt_footer, monthly_target)
-            VALUES (1, 1, 'Footprint Retail', '₵ (GHS)', 15.00, 'Thank you!', $1)
+            VALUES (1, 1, 'Faith Pharmacy', '₵ (GHS)', 0.00, 'Thank you!', $1)
             ON CONFLICT (id) DO UPDATE SET monthly_target = $1
         `, [target]);
         await logActivity(req, 'UPDATE_REVENUE_TARGET', { target });
@@ -5944,7 +5935,7 @@ app.get('/api/branches', authenticateToken, async (req, res) => {
     try {
         // Join with system_settings to get VAT
         const result = await pool.query(`
-            SELECT b.*, COALESCE(ss.vat_rate, 15.00) as vat_rate 
+            SELECT b.*, COALESCE(ss.vat_rate, 0.00) as vat_rate 
             FROM branches b
             LEFT JOIN system_settings ss ON b.id = ss.branch_id
             WHERE b.deleted_at IS NULL
@@ -5973,7 +5964,7 @@ app.post('/api/branches', authenticateToken, async (req, res) => {
         await client.query(
             `INSERT INTO system_settings (id, branch_id, store_name, currency_symbol, vat_rate, receipt_footer)
              VALUES ($1, $1, $2, '₵ (GHS)', $3, 'Thank you for shopping with us!')`,
-            [branchId, name, vat_rate || 15.0]
+            [branchId, name, vat_rate || 0.0]
         );
 
         await client.query('COMMIT');
@@ -6158,7 +6149,7 @@ app.post('/api/settings/auth-code', authenticateToken, async (req, res) => {
 
             await pool.query(`
                 INSERT INTO system_settings (id, branch_id, credit_auth_code, credit_auth_code_expiry, store_name, currency_symbol, vat_rate)
-                VALUES ($1, $2, $3, $4, 'Footprint Retail', '₵ (GHS)', 15.00)
+                VALUES ($1, $2, $3, $4, 'Faith Pharmacy', '₵ (GHS)', 0.00)
             `, [nextId, branchId, code, expiry]);
         }
 
@@ -6555,7 +6546,7 @@ app.post('/api/customers/:id/email-statement', authenticateToken, async (req, re
 
 
             // Fetch VAT rate from system settings
-            let vatRate = 15.0; // Default VAT rate
+            let vatRate = 0.0; // Default VAT rate
             try {
                 const vatRes = await pool.query('SELECT vat_rate FROM system_settings WHERE branch_id = 1 LIMIT 1');
                 if (vatRes.rows.length > 0) {
@@ -7127,7 +7118,7 @@ app.get('/api/ceo/tax-report', authenticateToken, async (req, res) => {
 
         // Fetch System VAT (Default to Branch 1)
         const settingsRes = await pool.query("SELECT vat_rate FROM system_settings WHERE branch_id = 1");
-        const systemVat = settingsRes.rows.length > 0 ? parseFloat(settingsRes.rows[0].vat_rate) : 15.0;
+        const systemVat = settingsRes.rows.length > 0 ? parseFloat(settingsRes.rows[0].vat_rate) : 0.0;
 
         // Define Report Columns (VAT + Active Rules)
         // Using 'VAT' to match POS storage naming
@@ -7958,7 +7949,7 @@ if (process.env.VERCEL) {
     // Vercel serverless — just export
     module.exports = app;
 } else {
-    const server = app.listen(port, () => {
+    const server = app.listen(port, '0.0.0.0', () => {
         console.log(`Server running on port ${port} (HTTP)`);
         console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log(`Server should stay running - press Ctrl+C to stop`);

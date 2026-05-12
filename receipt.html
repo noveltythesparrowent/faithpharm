@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE SPARROW ENT | Receipt</title>
+    <title>FAITH PHARMACY | Receipt</title>
     <!-- Add JsBarcode library -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
@@ -32,16 +32,16 @@
         .store-logo img { 
             width: 60px; 
             height: 60px; 
-            border-radius: 50%; 
-            object-fit: cover;
-            border: 2px solid #1a2a6c;
+            border-radius: 8px; 
+            object-fit: contain;
+            border: 2px solid #0d7a3e;
         }
         .store-name { 
             font-size: 20px; 
             font-weight: bold; 
             text-transform: uppercase; 
             margin-bottom: 5px;
-            color: #1a2a6c;
+            color: #0d7a3e;
         }
         .store-info { 
             font-size: 11px; 
@@ -97,10 +97,10 @@
         }
         .items-table th { 
             text-align: left; 
-            border-bottom: 2px solid #1a2a6c; 
+            border-bottom: 2px solid #0d7a3e; 
             padding-bottom: 8px;
             font-weight: bold;
-            color: #1a2a6c;
+            color: #0d7a3e;
             font-size: 11px;
             text-transform: uppercase;
         }
@@ -126,7 +126,7 @@
             text-align: right; 
             white-space: nowrap;
             font-weight: bold;
-            color: #1a2a6c;
+            color: #0d7a3e;
         }
         
         .totals-section { 
@@ -147,9 +147,9 @@
             font-size: 18px; 
             font-weight: bold; 
             margin-top: 10px; 
-            border-top: 2px solid #1a2a6c; 
+            border-top: 2px solid #0d7a3e; 
             padding-top: 10px;
-            color: #1a2a6c;
+            color: #0d7a3e;
         }
         
         .footer { 
@@ -180,7 +180,7 @@
             transition: all 0.2s;
         }
         .btn-print { 
-            background: #1a2a6c; 
+            background: #0d7a3e; 
             color: white; 
         }
         .btn-print:hover {
@@ -229,11 +229,11 @@
     <div class="receipt-container">
         <div class="header">
             <div class="store-logo">
-                <img src="logo.png" alt="Store Logo" style="width: 200px; height: 40px; object-fit: contain;">
+                <img src="logo.png" alt="Store Logo" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
             </div>
-            <div class="store-name" id="rStoreName">THE SPARROW ENT</div>
-            <div class="store-info" id="rAddress">Headquarters</div>
-            <div class="store-info" id="rPhone">Tel: 0506012767</div>
+            <div class="store-name" id="rStoreName">FAITH PHARMACY</div>
+            <div class="store-info" id="rAddress">Stadium Road, Amasaman</div>
+            <div class="store-info" id="rPhone">Tel: +233 24 512 2959</div>
         </div>
 
 
@@ -355,7 +355,7 @@
                 document.getElementById('rDate').textContent = date.toLocaleString();
                 const receiptNumber = data.receipt_number || data.id;
                 let cashierName = data.cashier_name || 'Staff';
-                if (cashierName === 'Chief Executive Officer') cashierName = 'Dzorwulu';
+                if (cashierName === 'Chief Executive Officer') cashierName = 'Amasaman';
                 document.getElementById('rCashier').textContent = cashierName;
                 
                 // Set branch address from transaction data

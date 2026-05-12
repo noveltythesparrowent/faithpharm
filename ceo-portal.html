@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Footprint | CEO Portal</title>
+    <title>Faith Pharmacy | CEO Portal</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
     <style>
         /* Matching dashboard.html colors */
         :root {
-            --primary-color: #1a2a6c;
-            --secondary-color: #b21f1f;
-            --accent-color: #fdbb2d;
+            --primary-color: #0d7a3e;
+            --secondary-color: #065a2b;
+            --accent-color: #4caf50;
             --text-color: #333;
             --light-text: #fff;
             --gray-light: #f5f7fa;
@@ -24,7 +24,7 @@
         body { background: var(--gray-light); display: flex; flex-direction: column; min-height: 100vh; }
         
         /* Sidebar */
-        .sidebar { width: var(--sidebar-width); background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; transition: 0.3s; }
+        .sidebar { width: var(--sidebar-width); background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; height: 100dvh; overflow-y: auto; z-index: 1000; transition: 0.3s; }
         .brand { padding: 25px; font-size: 24px; font-weight: 700; letter-spacing: 1px; border-bottom: 1px solid rgba(255,255,255,0.1); font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 10px; }
         .nav-links { flex: 1; padding-top: 20px; }
         .nav-item { display: flex; align-items: center; padding: 15px 25px; color: rgba(255,255,255,0.7); text-decoration: none; transition: 0.3s; font-size: 14px; cursor: pointer; }
@@ -44,7 +44,7 @@
         .btn-white { background: white; border: 1px solid #e2e8f0; color: #475569; }
         .btn-white:hover { background: #f8fafc; transform: translateY(-1px); }
         .btn-primary { background: var(--primary-color); color: white; }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26, 42, 108, 0.2); }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13, 122, 62, 0.2); }
 
         /* Tabs */
         .tab-content { display: none; animation: fadeIn 0.3s; }
@@ -132,7 +132,7 @@
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px; }
         .form-input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s; }
-        .form-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(26, 42, 108, 0.1); }
+        .form-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(13, 122, 62, 0.1); }
         .modal-footer { padding: 20px 30px; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px; }
         .step-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 25px; }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: #e2e8f0; transition: 0.3s; }
@@ -274,7 +274,7 @@
             text-align: center; cursor: pointer; transition: all 0.3s ease; border: 1px solid transparent;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .menu-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-color: rgba(26, 42, 108, 0.1); }
+        .menu-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-color: rgba(13, 122, 62, 0.1); }
         .menu-card i { font-size: 40px; color: var(--primary-color); margin-bottom: 20px; transition: 0.3s; }
         .menu-card:hover i { transform: scale(1.1); color: var(--secondary-color); }
         .menu-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #333; }
@@ -294,7 +294,7 @@
         .search-icon {
             font-size: 20px; color: #94a3b8;
         }
-        .search-container:focus-within { border-color: var(--primary-color); box-shadow: 0 4px 20px rgba(26, 42, 108, 0.1); }
+        .search-container:focus-within { border-color: var(--primary-color); box-shadow: 0 4px 20px rgba(13, 122, 62, 0.1); }
 
         /* Footer */
         footer {
@@ -368,9 +368,9 @@
     <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar">
         <div class="brand" style="display: flex; flex-direction: column; align-items: center;">
-            <img src="logo.png" style="width: 200px; height: 40px; object-fit: contain;">
+            <img src="logo.png" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
             <div style="display: flex; flex-direction: column; align-items: center; margin-top: 5px;">
-                <span style="font-size: 20px; line-height: 1;">THE SPARROW ENT</span>
+                <span style="font-size: 20px; line-height: 1;">FAITH PHARMACY</span>
                 <span style="font-size: 10px; letter-spacing: 2px; color: var(--accent-color);">CEO PORTAL</span>
             </div>
         </div>
@@ -1150,7 +1150,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Initial Password</label>
-                        <input type="text" id="mgrPassword" class="form-input" value="Footprint123!" readonly style="background-color: #f9f9f9; cursor: not-allowed;">
+                        <input type="text" id="mgrPassword" class="form-input" value="FaithPharmacy123!" readonly style="background-color: #f9f9f9; cursor: not-allowed;">
                         <small style="color: #666; font-size: 12px; margin-top: 5px;">Default password for new managers.</small>
                     </div>
                     <div class="form-group">
@@ -1329,7 +1329,7 @@
                     </div>
 
                     <!-- Add New Tax Form -->
-                    <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border-top: 2px solid #1a2a6c;">
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border-top: 2px solid #0d7a3e;">
                         <h3 style="margin-top: 0; font-size: 16px; margin-bottom: 10px;">Add New Tax Rule</h3>
                         <form onsubmit="handleAddTax(event)" style="display: flex; gap: 10px; align-items: flex-end;">
                             <div style="flex: 2;">
@@ -1791,8 +1791,8 @@
                     datasets: [{
                         label: 'Revenue',
                         data: branches.map(b => b.revenue),
-                        borderColor: '#1a2a6c',
-                        backgroundColor: 'rgba(26, 42, 108, 0.1)',
+                        borderColor: '#0d7a3e',
+                        backgroundColor: 'rgba(13, 122, 62, 0.1)',
                         tension: 0.4,
                         fill: true,
                         pointRadius: 5
@@ -1833,7 +1833,7 @@
 
             const labels = products.map(p => p.name);
             const data = products.map(p => parseFloat(p.revenue));
-            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#2e7d32', '#ef6c00'];
+            const colors = ['#0d7a3e', '#065a2b', '#4caf50', '#2e7d32', '#ef6c00'];
 
             topProductsChartInstance = new Chart(document.getElementById('topProductsChart'), {
                 type: 'doughnut',
@@ -1879,7 +1879,7 @@
                             datasets: [{
                                 label: 'Transactions',
                                 data: counts,
-                                backgroundColor: '#1a2a6c',
+                                backgroundColor: '#0d7a3e',
                                 borderRadius: 4
                             }]
                         },
@@ -1949,7 +1949,7 @@
             
             const labels = stats.map(s => s.payment_method.toUpperCase());
             const data = stats.map(s => parseFloat(s.total));
-            const colors = ['#1a2a6c', '#fdbb2d', '#2e7d32', '#b21f1f', '#666'];
+            const colors = ['#0d7a3e', '#4caf50', '#2e7d32', '#065a2b', '#666'];
 
             paymentChartInstance = new Chart(document.getElementById('paymentChart'), {
                 type: 'doughnut',
@@ -1985,8 +1985,8 @@
                     datasets: [{
                         data: [cogs, opex, netProfit],
                         backgroundColor: [
-                            '#fdbb2d', // COGS (Accent - Yellow/Orange)
-                            '#b21f1f', // OpEx (Red)
+                            '#4caf50', // COGS (Accent - Yellow/Orange)
+                            '#065a2b', // OpEx (Red)
                             '#2e7d32'  // Profit (Green)
                         ],
                         borderWidth: 0
@@ -2034,8 +2034,8 @@
                                 {
                                     label: 'Revenue',
                                     data: data.revenue || [],
-                                    backgroundColor: '#1a2a6c',
-                                    borderColor: '#1a2a6c',
+                                    backgroundColor: '#0d7a3e',
+                                    borderColor: '#0d7a3e',
                                     tension: 0.4,
                                     fill: false,
                                     yAxisID: 'y'
@@ -2043,8 +2043,8 @@
                                 {
                                     label: 'Costs',
                                     data: data.costs || [],
-                                    backgroundColor: '#b21f1f',
-                                    borderColor: '#b21f1f',
+                                    backgroundColor: '#065a2b',
+                                    borderColor: '#065a2b',
                                     tension: 0.4,
                                     fill: false,
                                     yAxisID: 'y'
@@ -2052,7 +2052,7 @@
                                 {
                                     label: 'AI Forecast',
                                     data: data.forecast || [],
-                                    borderColor: '#fdbb2d',
+                                    borderColor: '#4caf50',
                                     borderDash: [5, 5],
                                     tension: 0.4,
                                     fill: false,
@@ -2524,7 +2524,7 @@
                     <div class="form-group"><label class="form-label">Account Number</label><div class="form-input" style="background:#f8fafc;">${customer.account_number || 'Pending'}</div></div>
                     <div class="form-group"><label class="form-label">Phone</label><div class="form-input" style="background:#f8fafc;">${customer.phone || 'N/A'}</div></div>
                     <div class="form-group"><label class="form-label">Email</label><div class="form-input" style="background:#f8fafc;">${customer.email || 'N/A'}</div></div>
-                    <div class="form-group"><label class="form-label">${limitLabel}</label><div class="form-input" style="background:#f8fafc; font-weight:bold; color:#1a2a6c;">₵${parseFloat(displayLimit).toLocaleString()}</div></div>
+                    <div class="form-group"><label class="form-label">${limitLabel}</label><div class="form-input" style="background:#f8fafc; font-weight:bold; color:#0d7a3e;">₵${parseFloat(displayLimit).toLocaleString()}</div></div>
                     <div class="form-group"><label class="form-label">Date Requested</label><div class="form-input" style="background:#f8fafc;">${new Date(customer.created_at).toLocaleString()}</div></div>
                     <div class="form-group"><label class="form-label">Requested By</label><div class="form-input" style="background:#f8fafc;">${customer.created_by_name || 'Unknown'}</div></div>
                     <div class="form-group"><label class="form-label">Branch</label><div class="form-input" style="background:#f8fafc;">${customer.branch || 'N/A'}</div></div>
@@ -2659,8 +2659,8 @@
                                 let stockVal = 0;
                                 if (branchKey !== undefined) {
                                     stockVal = Number(levelsObj[branchKey] || 0);
-                                } else if (selectedBranch.toLowerCase().includes('novelty') || selectedBranch.toLowerCase().includes('dzorwulu')) {
-                                    // Robust fallback for NOVELTY/Dzorwulu to Main Warehouse
+                                } else if (selectedBranch.toLowerCase().includes('faith pharmacy') || selectedBranch.toLowerCase().includes('amasaman')) {
+                                    // Robust fallback for Faith Pharmacy/Amasaman to Main Warehouse
                                     const mainKey = branchesKeys.find(k => {
                                         const kl = k.toLowerCase();
                                         return kl === 'main warehouse' || kl.includes('warehouse');
@@ -2734,8 +2734,8 @@
                 const branches = branchesRes.ok ? await branchesRes.json() : [];
 
                 // Build lookup maps for both directions:
-                //   location → branch name   e.g. "Dzorwulu" → "NOVELTY"
-                //   branch name → location   e.g. "NOVELTY" → "Dzorwulu"
+                //   location → branch name   e.g. "Amasaman" → "FAITH PHARMACY"
+                //   branch name → location   e.g. "FAITH PHARMACY" → "Amasaman"
                 const locationToName = {};  // location → name
                 const nameToLocation = {};  // name → location
                 branches.forEach(b => {
@@ -2768,12 +2768,12 @@
                         totalCheckPoints += targetLocations.length;
 
                         targetLocations.forEach(bLocation => {
-                            const branchName = locationToName[bLocation] || bLocation;  // e.g. "NOVELTY"
-                            const branchLocation = nameToLocation[branchName] || bLocation; // e.g. "Dzorwulu"
+                            const branchName = locationToName[bLocation] || bLocation;  // e.g. "FAITH PHARMACY"
+                            const branchLocation = nameToLocation[branchName] || bLocation; // e.g. "Amasaman"
                             const branchesKeys = Object.keys(levelsObj);
 
                             // Collect all possible candidate keys for this branch and pick the one with highest stock
-                            // This handles phantom zero entries (e.g. "NOVELTY":0) vs real entries (e.g. "Dzorwulu":120)
+                            // This handles phantom zero entries (e.g. "FAITH PHARMACY":0) vs real entries (e.g. "Amasaman":120)
                             const candidates = [branchName, branchLocation].filter(Boolean);
                             let stockVal = 0;
                             candidates.forEach(candidate => {
@@ -3193,7 +3193,7 @@
             const labels = data.map(d => d.branch || d.name);
             const revenueData = data.map(d => parseFloat(d.revenue));
             const txnData = data.map(d => parseInt(d.txn_count));
-            const colors = ['#1a2a6c', '#b21f1f', '#fdbb2d', '#2e7d32', '#ef6c00', '#666'];
+            const colors = ['#0d7a3e', '#065a2b', '#4caf50', '#2e7d32', '#ef6c00', '#666'];
 
             // Revenue Donut (Shows Share)
             if (opsRevenueChartInstance) opsRevenueChartInstance.destroy();
@@ -3241,8 +3241,8 @@
                     datasets: [{
                         label: 'Branches',
                         data: scatterData,
-                        backgroundColor: 'rgba(26, 42, 108, 0.6)',
-                        borderColor: '#1a2a6c',
+                        backgroundColor: 'rgba(13, 122, 62, 0.6)',
+                        borderColor: '#0d7a3e',
                         pointRadius: 6,
                         pointHoverRadius: 8
                     }]
@@ -3340,7 +3340,7 @@
         // Manager Modal Logic
         function openManagerModal() { 
             document.getElementById('managerModal').classList.add('active'); 
-            document.getElementById('mgrPassword').value = 'Footprint123!';
+            document.getElementById('mgrPassword').value = 'FaithPharmacy123!';
             
             // Populate branches
             const select = document.getElementById('mgrBranch');
@@ -3621,10 +3621,10 @@
             // User Message
             body.innerHTML += `
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: flex-end;">
-                    <div style="background: #1a2a6c; color: white; padding: 10px 15px; border-radius: 15px 0 15px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 80%; font-size: 14px; line-height: 1.5;">
+                    <div style="background: #0d7a3e; color: white; padding: 10px 15px; border-radius: 15px 0 15px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 80%; font-size: 14px; line-height: 1.5;">
                         ${text}
                     </div>
-                    <div style="width: 35px; height: 35px; background: #1a2a6c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;"><i class="fas fa-user"></i></div>
+                    <div style="width: 35px; height: 35px; background: #0d7a3e; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;"><i class="fas fa-user"></i></div>
                 </div>
             `;
             

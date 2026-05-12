@@ -16,17 +16,12 @@ exports.securityHeaders = helmet({
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: ["'self'", 'https://api.mtn.com', 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
             fontSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
-            workerSrc: ["'self'", "blob:"]
+            workerSrc: ["'self'", "blob:"],
+            upgradeInsecureRequests: null
         }
     },
-    // only send HSTS headers in production environments
-    hsts: isLocalhost
-        ? false
-        : {
-              maxAge: 31536000,
-              includeSubDomains: true,
-              preload: true
-          },
+    // explicitly disable HSTS while testing LAN connections
+    hsts: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginEmbedderPolicy: false
 });

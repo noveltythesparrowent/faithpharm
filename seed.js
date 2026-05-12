@@ -213,22 +213,7 @@ const run = async () => {
             console.log(`Cashier user updated.`);
         }
 
-        // Create CEO User
-        const ceoEmail = 'ceo@footprint.com';
-        const ceoPass = process.env.DEFAULT_CEO_PASS || 'ceo123';
-        const ceoHash = await bcrypt.hash(ceoPass, 10);
-        const ceoRes = await pool.query('SELECT * FROM users WHERE email = $1', [ceoEmail]);
 
-        if (ceoRes.rows.length === 0) {
-            await pool.query(
-                'INSERT INTO users (name, email, password, role, store_location) VALUES ($1, $2, $3, $4, $5)',
-                ['Chief Executive Officer', ceoEmail, ceoHash, 'ceo', 'Headquarters']
-            );
-            console.log(`CEO created successfully.\nEmail: ${ceoEmail}\nStore: Headquarters`);
-        } else {
-            await pool.query('UPDATE users SET password = $1, role = $3, store_location = $4 WHERE email = $2', [ceoHash, ceoEmail, 'ceo', 'Headquarters']);
-            console.log(`CEO user updated.`);
-        }
 
         // Create Manager User
         const managerEmail = 'manager@footprint.com';
