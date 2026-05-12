@@ -2123,12 +2123,21 @@
             if (tabId === 'returns') loadReturns();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadInventory();
-            loadCategories();
-            loadSuppliers();
-            loadPOs();
-            loadTransfers();
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Sequential loading to prevent DB connection spikes
+            await loadInventory();
+            await loadCategories();
+            await loadSuppliers();
+            await loadPOs();
+            await loadTransfers();
+            
+            // Optional: Load remaining data after a short delay
+            setTimeout(async () => {
+                try {
+                    if (typeof loadReturns === 'function') await loadReturns();
+                    if (typeof loadNegativeStock === 'function') await loadNegativeStock();
+                } catch(e) {}
+            }, 1000);
 
             // Handle tabs (Session storage priority for persistence without URL params)
             const urlParams = new URLSearchParams(window.location.search);
@@ -2186,7 +2195,7 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    const categories = await res.json();
+                    const const data = await res.json(); categories = Array.isArray(data) ? data : [];
                     
                     // 1. Update Dropdowns & Data
                     window.allCategories = categories;
@@ -2259,7 +2268,8 @@
                     if (document.getElementById('lowStockFilter')?.checked || document.getElementById('outOfStockFilter')?.checked) {
                         window.serverLowStockCount = window.serverTotalStockItems;
                     }
-                    products = await res.json();
+                    const data = await res.json();
+                    products = Array.isArray(data) ? data : [];
                 } else {
                     throw new Error('Failed to load products');
                 }
@@ -2962,7 +2972,7 @@
                 const res = await fetch('/api/suppliers', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (res.ok) suppliers = await res.json();
+                if (res.ok) const data = await res.json(); suppliers = Array.isArray(data) ? data : [];
                 filteredSuppliers = [...suppliers];
             } catch (e) {
                 console.error("Error loading suppliers", e);
@@ -3136,7 +3146,7 @@
                 const res = await fetch('/api/purchase-orders', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (res.ok) allPurchaseOrders = await res.json();
+                if (res.ok) { const data = await res.json(); allPurchaseOrders = Array.isArray(data) ? data : []; }
                 filteredPOs = [...allPurchaseOrders];
             } catch (e) { console.error(e); }
 
@@ -3516,7 +3526,7 @@
                 const res = await fetch('/api/transfers', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                transfers = await res.json();
+                const data = await res.json(); transfers = Array.isArray(data) ? data : [];
                 filteredTransfers = [...transfers];
                 renderTransferTable();
             } catch(e) { console.error(e); }

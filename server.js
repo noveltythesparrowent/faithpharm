@@ -1026,6 +1026,16 @@ async function initDb() {
             }
         }
 
+        // Ensure all products have stock_levels initialized (moved from API for performance)
+        try {
+            await pool.query(`
+                UPDATE products 
+                SET stock_levels = jsonb_build_object('Main Warehouse', COALESCE(stock, 0))
+                WHERE stock_levels IS NULL OR stock_levels = '{}'::jsonb
+            `);
+            console.log('Product stock_levels verified');
+        } catch (e) { console.error('Error initializing product stock_levels:', e.message); }
+
         console.log('Database schema checked/updated');
     } catch (err) {
         console.error('DB Init Error:', err);
@@ -2317,12 +2327,7 @@ app.get('/api/products/full', authenticateToken, async (req, res) => {
             userBranch = process.env.MAIN_BRANCH_LOCATION || 'Amasaman';
         }
 
-        // Ensure all products have stock_levels initialized
-        await pool.query(`
-            UPDATE products 
-            SET stock_levels = jsonb_build_object('Main Warehouse', COALESCE(stock, 0))
-            WHERE stock_levels IS NULL OR stock_levels = '{}'::jsonb
-        `);
+        // Support Pagination & Search parameters
 
         // Support Pagination & Search parameters
         const page = Math.max(1, parseInt(req.query.page) || 1);
