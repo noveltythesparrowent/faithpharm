@@ -148,16 +148,12 @@ pool.connect = async function() {
     return client;
 };
 
-// Also patch the direct pool.query fallback which behaves independently in older `pg` versions
+// Use the native pool.query directly — pg Pool already manages connection acquire/release internally.
+// The previous override was causing triple connection usage per query (set_config + query + reset),
+// exhausting the connection pool and causing 500 errors under normal page loads.
 const originalPoolQuery = pool.query.bind(pool);
-pool.query = async function(...args) {
-    const client = await pool.connect();
-    try {
-        return await client.query(...args);
-    } finally {
-        client.release();
-    }
-};
+pool.query = originalPoolQuery;
+
 
 // Audit Logging Helper
 async function logActivity(req, action, details = {}) {
@@ -3582,13 +3578,19 @@ app.get('/api/goods-received', authenticateToken, async (req, res) => {
 // --- DISTRIBUTION ---
 app.get('/api/transfers', authenticateToken, async (req, res) => {
     try {
-        let query = 'SELECT * FROM stock_transfers';
-        let params = [];
+        const tenantId = req.user.tenant_id || 1;
+        let query = 'SELECT * FROM stock_transfers WHERE tenant_id = $1';
+        let params = [tenantId];
 
         // Filter transfers relevant to the user's branch (either sending or receiving)
         if (req.user.role !== 'admin' && req.user.role !== 'ceo' && req.user.store_location) {
-            const userCanonicalLocation = await getBranchNameFromLocation(req.user.store_location, pool);
-            query += ' WHERE from_location = $1 OR to_location = $1';
+            let userCanonicalLocation = req.user.store_location;
+            try {
+                userCanonicalLocation = await getBranchNameFromLocation(req.user.store_location, pool);
+            } catch (locationErr) {
+                console.warn('getBranchNameFromLocation failed, using raw location:', locationErr.message);
+            }
+            query += ' AND (from_location = $2 OR to_location = $2)';
             params.push(userCanonicalLocation);
         }
 
