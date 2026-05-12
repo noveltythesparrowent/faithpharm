@@ -13,11 +13,11 @@ async function updateAdminLocation() {
         // Update admin user to have store_location set to Accra Central
         const result = await pool.query(
             'UPDATE users SET store_location = $1 WHERE email = $2 RETURNING *',
-            ['Accra Central', 'admin@footprint.com']
+            ['Accra Central', 'admin@faithway.com']
         );
 
         if (result.rows.length > 0) {
-            console.log('✅ Successfully updated admin@footprint.com:');
+            console.log('✅ Successfully updated admin@faithway.com:');
             console.log(result.rows[0]);
         } else {
             console.log('❌ User not found');

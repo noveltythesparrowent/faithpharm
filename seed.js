@@ -179,8 +179,8 @@ const run = async () => {
             // Column likely doesn't exist or other error, ignore
         }
         
-        const email = 'admin@footprint.com';
-        const password = process.env.DEFAULT_ADMIN_PASS || 'password123';
+        const email = 'admin@faithway.com';
+        const password = process.env.DEFAULT_ADMIN_PASS || 'faith2026';
         const hash = await bcrypt.hash(password, 10);
         
         // Check if user exists
@@ -197,38 +197,38 @@ const run = async () => {
         }
 
         // Create Cashier User
-        const cashierEmail = 'cashier@footprint.com';
-        const cashierPass = process.env.DEFAULT_CASHIER_PASS || 'cashier123';
+        const cashierEmail = 'cashier@faithway.com';
+        const cashierPass = process.env.DEFAULT_CASHIER_PASS || 'cashier2026';
         const cashierHash = await bcrypt.hash(cashierPass, 10);
         const cashierRes = await pool.query('SELECT * FROM users WHERE email = $1', [cashierEmail]);
 
         if (cashierRes.rows.length === 0) {
             await pool.query(
                 'INSERT INTO users (name, email, password, role, store_location) VALUES ($1, $2, $3, $4, $5)',
-                ['Kelvin Van-Dyck (Cashier)', cashierEmail, cashierHash, 'cashier', 'Accra Branch']
+                ['Kelvin Van-Dyck (Cashier)', cashierEmail, cashierHash, 'cashier', process.env.MAIN_BRANCH_LOCATION || 'Amasaman']
             );
             console.log(`Cashier created successfully.\nEmail: ${cashierEmail}\nStore: Accra Branch`);
         } else {
-            await pool.query('UPDATE users SET name = $4, password = $1, store_location = $3 WHERE email = $2', [cashierHash, cashierEmail, 'Accra Branch', 'Kelvin Van-Dyck (Cashier)']);
+            await pool.query('UPDATE users SET name = $4, password = $1, store_location = $3 WHERE email = $2', [cashierHash, cashierEmail, process.env.MAIN_BRANCH_LOCATION || 'Amasaman', 'Kelvin Van-Dyck (Cashier)']);
             console.log(`Cashier user updated.`);
         }
 
 
 
         // Create Manager User
-        const managerEmail = 'manager@footprint.com';
-        const managerPass = process.env.DEFAULT_MANAGER_PASS || 'manager123';
+        const managerEmail = 'manager@faithway.com';
+        const managerPass = process.env.DEFAULT_MANAGER_PASS || 'manager2026';
         const managerHash = await bcrypt.hash(managerPass, 10);
         const managerRes = await pool.query('SELECT * FROM users WHERE email = $1', [managerEmail]);
 
         if (managerRes.rows.length === 0) {
             await pool.query(
                 'INSERT INTO users (name, email, password, role, store_location) VALUES ($1, $2, $3, $4, $5)',
-                ['Store Manager', managerEmail, managerHash, 'manager', 'Accra Branch']
+                ['Store Manager', managerEmail, managerHash, 'manager', process.env.MAIN_BRANCH_LOCATION || 'Amasaman']
             );
             console.log(`Manager created successfully.\nEmail: ${managerEmail}\nStore: Accra Branch`);
         } else {
-            await pool.query('UPDATE users SET password = $1, role = $3, store_location = $4 WHERE email = $2', [managerHash, managerEmail, 'manager', 'Accra Branch']);
+            await pool.query('UPDATE users SET password = $1, role = $3, store_location = $4 WHERE email = $2', [managerHash, managerEmail, 'manager', process.env.MAIN_BRANCH_LOCATION || 'Amasaman']);
             console.log(`Manager user updated.`);
         }
     } catch (e) {

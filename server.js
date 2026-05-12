@@ -1271,16 +1271,16 @@ app.post('/forgot-password', async (req, res) => {
 
         // Email content
         const mailOptions = {
-            from: `"Footprint Retail Store" <${process.env.ADMIN_EMAIL}>`,
+            from: `"Faith Pharmacy" <${process.env.ADMIN_EMAIL}>`,
             to: user.email,
             subject: 'Your Password Reset Request',
             html: `
                 <p>Hello ${user.name},</p>
-                <p>You requested a password reset for your Footprint Retail Store account.</p>
+                <p>You requested a password reset for your Faith Pharmacy account.</p>
                 <p>Please click the following link to reset your password. This link is valid for 1 hour:</p>
                 <a href="${resetLink}" style="background-color: #1a2a6c; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Reset Password</a>
                 <p>If you did not request a password reset, please ignore this email.</p>
-                <p>Thank you,<br>The Footprint Team</p>
+                <p>Thank you,<br>The Faith Pharmacy Team</p>
             `
         };
 
@@ -6765,7 +6765,7 @@ app.post('/api/customers/:id/email-statement', authenticateToken, async (req, re
 
                     // Footer
                     doc.fontSize(9).font('Helvetica').fillColor('#1a2a6c').text('Thank you for your business.', { align: 'center' });
-                    doc.fontSize(8).fillColor('#999').text('For account enquiries, please contact us at accounts@footprint.com', { align: 'center' });
+                    doc.fontSize(8).fillColor('#999').text('For account enquiries, please contact us at support@faithway.com', { align: 'center' });
 
                     doc.end();
                 } catch (err) {
@@ -6789,7 +6789,7 @@ app.post('/api/customers/:id/email-statement', authenticateToken, async (req, re
         const emailHtml = `
             <div style="font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; max-width: 600px;">
                 <div style="background: linear-gradient(135deg, #1a2a6c, #b21f1f); padding: 30px; border-radius: 8px 8px 0 0; color: white; text-align: center;">
-                    <h1 style="margin: 0; font-size: 28px;">FOOTPRINT RETAIL SYSTEMS</h1>
+                    <h1 style="margin: 0; font-size: 28px;">FAITH PHARMACY</h1>
                     <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Account Statement</p>
                 </div>
                 
@@ -6822,19 +6822,19 @@ app.post('/api/customers/:id/email-statement', authenticateToken, async (req, re
                     <p style="font-size: 13px; color: #666; margin: 15px 0;">
                         <strong>Contact Us:</strong><br>
                         Phone: +233 (0) XXX XXX XXX<br>
-                        Email: accounts@footprint.com
+                        Email: support@faithway.com
                     </p>
                     
                     <p style="font-size: 12px; color: #999; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
                         This is an automated message. Please do not reply to this email.<br>
-                        © 2026 Footprint Retail Systems. All rights reserved.
+                        © 2026 Faith Pharmacy. All rights reserved.
                     </p>
                 </div>
             </div>
         `;
 
         const mailOptions = {
-            from: `"Footprint Accounts" <${process.env.ADMIN_EMAIL}>`,
+            from: `"Faith Pharmacy Accounts" <${process.env.ADMIN_EMAIL}>`,
             to: customer.email,
             subject: `Account Statement - ${monthName} ${year}`,
             html: emailHtml,

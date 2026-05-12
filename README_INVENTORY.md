@@ -1,4 +1,4 @@
-# 🎉 Footprint POS - Enhanced Inventory Management System
+# 🎉 Faith Pharmacy POS - Enhanced Inventory Management System
 
 **Status: ✅ COMPLETE & PRODUCTION READY**
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-Your Footprint POS system now includes a **complete, enterprise-grade inventory management system** with all 12 features fully implemented, tested, and ready for production.
+Your Faith Pharmacy POS system now includes a **complete, enterprise-grade inventory management system** with all 12 features fully implemented, tested, and ready for production.
 
 ### ✨ What You Get
 
