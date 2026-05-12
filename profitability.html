@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="preload" href="logo.png" as="image">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faith Pharmacy | Profits</title>
@@ -187,7 +188,7 @@
                 document.getElementById('userName').textContent = user.name || 'User';
                 const _roleLabel = user.role === 'manager' ? 'Store Manager' : (user.role === 'admin' ? 'Administrator' : (user.role || 'Staff'));
                 const _branchLabel = user.store_location ? ` · ${user.store_location}` : '';
-                document.getElementById('userRole').textContent = _roleLabel + _branchLabel;
+                document.getElementById('userRole').textContent = _roleLabel;
             }
 
             try {
@@ -202,7 +203,7 @@
                 document.getElementById('userName').textContent = user.name || 'User';
                 const _roleLabel2 = user.role === 'manager' ? 'Store Manager' : (user.role === 'admin' ? 'Administrator' : (user.role || 'Staff'));
                 const _branchLabel2 = user.store_location ? ` · ${user.store_location}` : '';
-                document.getElementById('userRole').textContent = _roleLabel2 + _branchLabel2;
+                document.getElementById('userRole').textContent = _roleLabel2;
                 
                 loadData();
             } catch (error) {
