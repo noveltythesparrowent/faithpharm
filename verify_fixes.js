@@ -37,10 +37,10 @@ async function run() {
 
         console.log("✅ Test product and batches created.");
 
-        // 2. Login as Admin
+        // 2. Login as CEO
         const loginRes = await axios.post(`${BASE_URL}/login`, {
-            email: 'admin@faithway.com',
-            password: process.env.DEFAULT_ADMIN_PASS || 'faith2026'
+            email: 'ceo@faithway.com',
+            password: 'Faith2026'
         });
         const token = loginRes.data.token;
         const headers = { Authorization: `Bearer ${token}` };
@@ -70,10 +70,13 @@ async function run() {
         // Sale in Amasaman should NOT affect batches in Accra Branch if we had some there.
         // (Our sale was in Amasaman by default for admin)
 
+        const prodCheck = await pool.query("SELECT stock_levels FROM products WHERE barcode = $1", [barcode]);
+        console.log("🔍 Product stock levels after sale:", prodCheck.rows[0].stock_levels);
+
         // 5. Verify Low Stock Report (Branch-Specific)
-        console.log("📋 Checking Low Stock Report for Amasaman...");
-        // After selling 3, Amasaman stock is 7. Reorder level is 15. It should show up.
+        console.log("📋 Checking Low Stock Report for Amasaman (ID: 1)...");
         const lowStockRes = await axios.get(`${BASE_URL}/api/reports/low-stock/1`, { headers });
+        console.log("🔍 Low Stock Report first 3 items:", JSON.stringify(lowStockRes.data.slice(0, 3), null, 2));
         const testProdReport = lowStockRes.data.find(p => p.barcode === barcode);
 
         if (testProdReport) {
@@ -82,10 +85,11 @@ async function run() {
             console.error("❌ Low Stock Report Failed: Product not found in report.");
         }
 
-        // Cleanup
+        /* Cleanup commented out for debugging
         await pool.query("DELETE FROM product_batches WHERE product_barcode = $1", [barcode]);
         await pool.query("DELETE FROM products WHERE barcode = $1", [barcode]);
         console.log("🗑️ Test data cleaned up.");
+        */
 
     } catch (err) {
         console.error("❌ Error during verification:", err.response?.data || err.message);

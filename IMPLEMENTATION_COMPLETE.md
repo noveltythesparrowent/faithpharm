@@ -528,6 +528,13 @@ Your Footprint POS system now has a **complete, enterprise-grade inventory manag
 
 ### System Status: **🟢 READY FOR PRODUCTION**
 
+### 14. OFFLINE POS MODE
+- **Local Data Caching**: Stores products and taxes in `localStorage` for offline access.
+- **Transaction Queueing**: Saves sales made without internet to an `offline_transactions` queue.
+- **Auto-Synchronization**: Automatically detects restored internet and pushes queued sales to the database.
+- **Offline Receipts**: Generates valid receipt numbers and allows printing while offline.
+- **Status Indicator**: Real-time visual feedback of network connectivity in the POS interface.
+
 ---
 
 **Implementation Date:** January 2025  

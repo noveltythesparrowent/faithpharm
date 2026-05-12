@@ -1446,6 +1446,7 @@
         const customerChannel = new BroadcastChannel('faithway_customer_display');
         // Will be loaded from DB
         let products = [];
+        let offlineQueue = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
 
         let cart = [];
         let scannerMode = 'hardware'; // 'hardware' or 'camera'
@@ -1936,133 +1937,48 @@
         }
 
         async function processScan(val) {
-            if (!val) {
-                console.error('No barcode value provided');
-                return;
-            }
-
+            if (!val) return;
             const cleanVal = val.toString().trim();
-            console.log('Processing barcode:', cleanVal);
-
             const scanResult = document.getElementById('scanResult');
-            scanResult.innerHTML = `🔍 Scanning: <strong>${cleanVal}</strong>`;
+            scanResult.innerHTML = `🔍 Searching: <strong>${cleanVal}</strong>`;
 
-            // First check if this is a receipt barcode (starts with RCP or is numeric)
-            if (cleanVal.startsWith('RCP') || /^\d+$/.test(cleanVal)) {
-                console.log('Detected receipt barcode, checking for return...');
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`/api/scan/${encodeURIComponent(cleanVal)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-                // Normalize receipt number (add RCP prefix if not present)
-                const normalizedReceipt = cleanVal.startsWith('RCP') ? cleanVal : 'RCP' + cleanVal;
+                if (response.ok) {
+                    const data = await response.json();
 
-                try {
-                    const token = localStorage.getItem('authToken');
-                    const response = await fetch(`/transactions/receipt/${normalizedReceipt}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    if (data.type === 'batch') {
+                        // Found a specific batch
+                        const product = data.product;
+                        product.batch_id = data.batch.id;
+                        product.batch_number = data.batch.batch_number;
+                        product.expiry_date = data.batch.expiry_date;
 
-                    if (response.ok) {
-                        const transaction = await response.json();
-                        console.log('Found transaction:', transaction);
-                        await loadReturnTransaction(transaction);
-                        scanResult.innerHTML = `📋 Loaded receipt: <strong>${normalizedReceipt}</strong>`;
-                        return;
+                        addToCart(product);
+                        scanResult.innerHTML = `✅ Added Batch: <strong>${product.batch_number}</strong> (${product.name})`;
+                    } else if (data.type === 'product') {
+                        if (data.products.length === 1) {
+                            addToCart(data.products[0]);
+                            scanResult.innerHTML = `✅ Added: <strong>${data.products[0].name}</strong>`;
+                        } else {
+                            showProductSelection(cleanVal, data.products);
+                            scanResult.innerHTML = '';
+                        }
                     }
-                } catch (err) {
-                    console.log('Not a valid receipt barcode, checking products...');
+
+                    setTimeout(() => { scanResult.innerHTML = ''; }, 2000);
+                } else {
+                    const error = await response.json().catch(() => ({}));
+                    scanResult.innerHTML = `❌ ${error.message || 'Not found'}`;
+                    notify(error.message || 'Product or Batch not found', 'error');
                 }
-            }
-
-            // Ensure products are loaded
-            if (!products || !products.length) {
-                console.log('No products loaded, refreshing...');
-                try {
-                    await refreshProducts();
-                    if (!products.length) {
-                        throw new Error('No products available after refresh');
-                    }
-                } catch (err) {
-                    const errorMsg = 'Failed to load products. Please try again.';
-                    console.error(errorMsg, err);
-                    scanResult.innerHTML = `❌ ${errorMsg}`;
-                    notify(errorMsg, 'error');
-                    return;
-                }
-            }
-
-            // Find all products matching the barcode (support multiple products per barcode)
-            let matchedProducts = [];
-
-            // 1. Exact match on barcode (case sensitive)
-            matchedProducts = products.filter(p => p.barcode === cleanVal);
-
-            // 2. Exact match on group_barcode (for shared barcodes)
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p => p.group_barcode === cleanVal);
-            }
-
-            // 3. Case-insensitive match on barcode
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.barcode && p.barcode.toString().toLowerCase() === cleanVal.toLowerCase()
-                );
-            }
-
-            // 4. Case-insensitive match on group_barcode
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.group_barcode && p.group_barcode.toString().toLowerCase() === cleanVal.toLowerCase()
-                );
-            }
-
-            // 5. Try with trimmed barcodes
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.barcode && p.barcode.toString().trim() === cleanVal
-                );
-            }
-
-            // 6. Try with trimmed group_barcodes
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.group_barcode && p.group_barcode.toString().trim() === cleanVal
-                );
-            }
-
-            // 7. Try partial match on barcode
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.barcode && (p.barcode.toString().includes(cleanVal) || cleanVal.includes(p.barcode))
-                );
-            }
-
-            // 8. Try partial match on group_barcode
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.group_barcode && (p.group_barcode.toString().includes(cleanVal) || cleanVal.includes(p.group_barcode))
-                );
-            }
-
-            // 9. Try name match as last resort
-            if (matchedProducts.length === 0) {
-                matchedProducts = products.filter(p =>
-                    p.name && p.name.toLowerCase() === cleanVal.toLowerCase()
-                );
-            }
-
-            if (matchedProducts.length === 0) {
-                const errorMsg = `❌ Product not found for barcode: ${cleanVal}`;
-                scanResult.innerHTML = errorMsg;
-                notify(errorMsg, 'error');
-                return;
-            }
-
-            if (matchedProducts.length === 1) {
-                // Single product found - add to cart directly
-                addToCart(matchedProducts[0]);
-                scanResult.innerHTML = '';
-            } else {
-                // Multiple products found - show selection modal
-                showProductSelection(cleanVal, matchedProducts);
+            } catch (err) {
+                console.error('Scan error:', err);
+                notify('Error searching for product/batch', 'error');
             }
         }
 
@@ -2212,13 +2128,14 @@
                 notify(`Notice: ${safeProduct.name} is out of stock. Selling into negative.`, "warning");
             }
 
-            const existingItem = cart.find(item => item.id === safeProduct.id);
+            // Group by product ID AND batch ID (so different batches are separate rows)
+            const existingItem = cart.find(item => item.id === safeProduct.id && item.batch_id === safeProduct.batch_id);
             if (existingItem) {
                 existingItem.qty++;
-                notify(`Increased quantity: ${safeProduct.name}`, "success");
+                notify(`Increased quantity: ${safeProduct.name}${safeProduct.batch_number ? ' (' + safeProduct.batch_number + ')' : ''}`, "success");
             } else {
                 cart.push({ ...safeProduct, qty: 1 });
-                notify(`Added to cart: ${safeProduct.name}`, "success");
+                notify(`Added to cart: ${safeProduct.name}${safeProduct.batch_number ? ' (' + safeProduct.batch_number + ')' : ''}`, "success");
             }
             renderCart();
             playBeep();
@@ -2589,6 +2506,27 @@
             // Create Pending Transaction in DB
             notify(isReturn ? "Processing return..." : "Creating transaction...", "success");
 
+            if (!navigator.onLine) {
+                // OFFLINE MODE: Store in queue
+                const offlineId = 'OFF-' + Date.now();
+                transactionData.receiptNumber = (isReturn ? 'REF' : 'RCP') + Date.now();
+                transactionData.status = 'completed'; // Mark as complete since we can't do payment gateway offline
+                transactionData.isOffline = true;
+
+                offlineQueue.push(transactionData);
+                localStorage.setItem('offline_transactions', JSON.stringify(offlineQueue));
+
+                notify("Saved offline. Will sync when internet is back.", "warning");
+                updateNetworkStatus();
+
+                // Emulate successful checkout
+                setTimeout(() => {
+                    if (isReturn) exitReturnMode();
+                    handlePostPayment(offlineId);
+                }, 500);
+                return;
+            }
+
             fetch('/api/transactions', {
                 method: 'POST',
                 headers: {
@@ -2694,6 +2632,35 @@
                     total: parseFloat(itemTotalAfterDiscount.toFixed(4))
                 };
             });
+
+            if (!navigator.onLine) {
+                const offlineTxn = {
+                    userId: currentUser.id,
+                    storeLocation: currentUser.store_location,
+                    total: isReturn ? -grandTotal : grandTotal,
+                    subtotal: subtotal,
+                    discount: discountVal,
+                    tax: totalTax,
+                    taxBreakdown: taxBreakdown,
+                    paymentMethod: method,
+                    items: adjustedItemsQ,
+                    status: 'completed',
+                    promoCode: currentPromoCode,
+                    isReturn: isReturn,
+                    originalTransactionId: originalTransactionId,
+                    receiptNumber: 'OFF-' + Date.now(),
+                    isOffline: true,
+                    timestamp: Date.now()
+                };
+                
+                offlineQueue.push(offlineTxn);
+                localStorage.setItem('offline_transactions', JSON.stringify(offlineQueue));
+                
+                notify("Offline sale saved. Will sync when online.", "warning");
+                // Immediately clear cart and show success for offline
+                handlePostPayment(offlineTxn.receiptNumber);
+                return;
+            }
 
             try {
                 const res = await fetch('/api/transactions', {
@@ -2834,6 +2801,7 @@
                 // Different styling for return mode items
                 const returnClass = item.returnMode ? 'return-item' : '';
                 const returnLabel = item.returnMode ? '<span style="background:#ff9800;color:white;font-size:9px;padding:2px 5px;border-radius:3px;">RETURN</span>' : '';
+                const batchLabel = item.batch_number ? `<span style="background:#2196f3;color:white;font-size:9px;padding:2px 5px;border-radius:3px;margin-left:5px;">${item.batch_number}</span>` : '';
                 const returnCheckbox = item.returnMode ? `<input type="checkbox" class="return-checkbox" data-index="${index}" ${item.selectedForReturn ? 'checked' : ''} onchange="toggleItemReturn(${index}, this.checked)" title="Select for return">` : '';
 
                 itemsHtml += `
@@ -2842,6 +2810,7 @@
                 <div class="cart-item-name" title="${item.name}">
                     ${item.name}
                     ${returnLabel}
+                    ${batchLabel}
                 </div>
                 <div class="cart-item-details">${item.barcode}</div>
                 <div class="cart-item-price">
@@ -3153,6 +3122,79 @@
             }, 2500);
         }
 
+        /* ======================
+           OFFLINE MODE LOGIC
+           ====================== */
+
+        function updateNetworkStatus() {
+            const isOnline = navigator.onLine;
+            const statusEl = document.getElementById('networkStatus');
+            if (!statusEl) {
+                const header = document.querySelector('header');
+                const div = document.createElement('div');
+                div.id = 'networkStatus';
+                div.style.cssText = 'position:fixed; top:75px; right:20px; padding:5px 15px; border-radius:20px; font-size:12px; font-weight:bold; z-index:100; transition:0.3s;';
+                document.body.appendChild(div);
+            }
+
+            const el = document.getElementById('networkStatus');
+            if (isOnline) {
+                el.textContent = 'ONLINE';
+                el.style.background = '#e8f5e9';
+                el.style.color = '#2e7d32';
+                el.style.display = offlineQueue.length > 0 ? 'block' : 'none';
+                if (offlineQueue.length > 0) {
+                    el.innerHTML = `ONLINE <span style="margin-left:10px; cursor:pointer; text-decoration:underline;" onclick="syncOfflineTransactions()">Sync ${offlineQueue.length} Pending</span>`;
+                }
+            } else {
+                el.textContent = 'OFFLINE MODE';
+                el.style.background = '#ffebee';
+                el.style.color = '#c62828';
+                el.style.display = 'block';
+            }
+        }
+
+        async function syncOfflineTransactions() {
+            if (!navigator.onLine || offlineQueue.length === 0) return;
+
+            notify(`Syncing ${offlineQueue.length} offline sales...`, "success");
+            const token = localStorage.getItem('authToken');
+            const remaining = [];
+
+            for (const txn of offlineQueue) {
+                try {
+                    const res = await fetch('/api/transactions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(txn)
+                    });
+
+                    if (!res.ok) throw new Error("Server rejected transaction");
+                    console.log("Synced transaction successfully");
+                } catch (err) {
+                    console.error("Sync failed for transaction", err);
+                    remaining.push(txn);
+                }
+            }
+
+            offlineQueue = remaining;
+            localStorage.setItem('offline_transactions', JSON.stringify(offlineQueue));
+            updateNetworkStatus();
+
+            if (remaining.length === 0) {
+                notify("All offline sales synced successfully!", "success");
+            } else {
+                notify(`Sync partially failed. ${remaining.length} items still pending.`, "warning");
+            }
+        }
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        setInterval(updateNetworkStatus, 5000);
+
         function openCustomerDisplay() {
             window.open('customer-display', 'CustomerDisplay', 'width=800,height=600,menubar=no,toolbar=no');
         }
@@ -3359,6 +3401,35 @@
             }
             const token = localStorage.getItem('authToken');
 
+            if (!navigator.onLine) {
+                // OFFLINE MODE: Store in queue
+                const offlineTxn = {
+                    userId: currentUser.id,
+                    storeLocation: currentUser.store_location,
+                    total: isReturn ? -grandTotal : grandTotal,
+                    subtotal: subtotal,
+                    discount: discountVal,
+                    tax: totalTax,
+                    taxBreakdown: taxBreakdown,
+                    paymentMethod: method,
+                    items: adjustedItemsQ,
+                    status: 'completed',
+                    promoCode: currentPromoCode,
+                    isReturn: isReturn,
+                    originalTransactionId: originalTransactionId,
+                    receiptNumber: (isReturn ? 'REF' : 'RCP') + Date.now(),
+                    isOffline: true
+                };
+
+                offlineQueue.push(offlineTxn);
+                localStorage.setItem('offline_transactions', JSON.stringify(offlineQueue));
+
+                notify("Offline sale saved. Sync pending.", "warning");
+                updateNetworkStatus();
+                handlePostPayment('OFF-' + Date.now());
+                return;
+            }
+
             try {
                 // 1. Create Transaction (Pending)
                 const txnRes = await fetch('/api/transactions', {
@@ -3435,6 +3506,16 @@
         async function refreshProducts() {
             console.log("Refreshing products...");
             const scanResult = document.getElementById('scanResult');
+
+            if (!navigator.onLine) {
+                const cachedProducts = localStorage.getItem('cached_products');
+                if (cachedProducts) {
+                    products = JSON.parse(cachedProducts);
+                    console.log(`Loaded ${products.length} products from cache (OFFLINE)`);
+                    return products;
+                }
+            }
+
             scanResult.innerHTML = '🔄 Loading products...';
 
             // Also refresh taxes
@@ -3485,6 +3566,10 @@
                     lastProductSnapshot.set(p.id, { price: item.price, stock: item.stock });  // Use ID instead of barcode
                     return item;
                 });
+
+                // Cache for offline use
+                localStorage.setItem('cached_products', JSON.stringify(products));
+
                 console.log(`Successfully loaded ${products.length} products:`, products);
 
                 // Show success message
@@ -3554,6 +3639,57 @@
         }
 
         // Initialize on page load
+        // --- OFFLINE SYNC LOGIC ---
+        window.addEventListener('online', syncOfflineSales);
+        window.addEventListener('offline', () => {
+            notify("You are now offline. Sales will be saved locally.", "warning");
+        });
+
+        async function syncOfflineSales() {
+            if (offlineQueue.length === 0) return;
+            notify("Internet restored. Syncing offline sales...", "info");
+            let successfulSyncs = [];
+            const token = localStorage.getItem('authToken');
+            
+            for (let txn of offlineQueue) {
+                try {
+                    const res = await fetch('/api/transactions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(txn)
+                    });
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            successfulSyncs.push(txn.receiptNumber);
+                        }
+                    } else if (res.status === 400 || res.status === 409) {
+                        // Conflict or Bad Request (might mean it was already processed, or invalid)
+                        // In a real scenario we might want to flag it or remove it. Let's assume 400 is bad data, 409 is conflict
+                        // Actually, if we get success:true and a message like "Already synced", we already handle it.
+                        // Let's just catch JSON
+                        const data = await res.json().catch(()=>({}));
+                        if (data.success) {
+                            successfulSyncs.push(txn.receiptNumber);
+                        } else if (data.message === "Already synced") {
+                            successfulSyncs.push(txn.receiptNumber);
+                        }
+                    }
+                } catch(e) {
+                    console.error('Failed to sync offline txn', e);
+                }
+            }
+            
+            offlineQueue = offlineQueue.filter(txn => !successfulSyncs.includes(txn.receiptNumber));
+            localStorage.setItem('offline_transactions', JSON.stringify(offlineQueue));
+            
+            if (successfulSyncs.length > 0) {
+                notify(`${successfulSyncs.length} offline sales successfully synced!`, "success");
+            }
+        }
+        // --- END OFFLINE SYNC LOGIC ---
+
         document.addEventListener('DOMContentLoaded', async function () {
             // Check session and shift status first
             const isAuthenticated = await checkSessionAndShift();
@@ -3565,7 +3701,11 @@
                 const res = await fetch('/api/taxes/active', { headers: { 'Authorization': `Bearer ${token}` } });
                 if (res.ok) {
                     activeTaxes = await res.json();
+                    localStorage.setItem('cached_taxes', JSON.stringify(activeTaxes));
                     console.log("Loaded active taxes:", activeTaxes);
+                } else if (!navigator.onLine) {
+                    const cachedTaxes = localStorage.getItem('cached_taxes');
+                    if (cachedTaxes) activeTaxes = JSON.parse(cachedTaxes);
                 } else {
                     // Fallback if no taxes defined or error
                     console.warn("Could not load taxes, defaulting to 0");
@@ -3647,8 +3787,16 @@
             // Auto-refresh data when window regains focus (e.g. switching back from CEO Portal)
             window.addEventListener('focus', () => {
                 refreshProducts();
+                if (navigator.onLine && offlineQueue.length > 0) {
+                    syncOfflineTransactions();
+                }
             });
             updateParkedCount();
+            updateNetworkStatus();
+
+            if (navigator.onLine && offlineQueue.length > 0) {
+                setTimeout(syncOfflineTransactions, 2000);
+            }
 
             // Park Name Input Enter Key
             const parkInput = document.getElementById('parkRefInput');

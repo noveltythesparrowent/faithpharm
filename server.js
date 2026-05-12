@@ -5192,6 +5192,16 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
             // Convert customerId to integer if provided
             const parsedCustomerId = customerId ? parseInt(customerId) : null;
 
+            // --- OFFLINE SYNC DUPLICATE CHECK ---
+            if (clientReceiptNumber) {
+                const existing = await client.query('SELECT id FROM transactions WHERE receipt_number = $1', [clientReceiptNumber]);
+                if (existing.rows.length > 0) {
+                    await client.query('ROLLBACK');
+                    // Already processed, return success to clear from client queue
+                    return res.json({ success: true, transactionId: existing.rows[0].id, receiptNumber: clientReceiptNumber, message: 'Already synced' });
+                }
+            }
+
             // Fetch customer name if ID is provided (Ensures data consistency)
             let customerName = null;
             if (parsedCustomerId) {

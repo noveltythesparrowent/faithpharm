@@ -337,21 +337,38 @@
 
             try {
                 const token = localStorage.getItem('authToken') || localStorage.getItem('companyToken');
-                
-                // 1. Fetch Settings (for Store Name/Footer)
-                const settingsRes = await fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } });
-                if(settingsRes.ok) {
-                    const settings = await settingsRes.json();
-                    // if(settings.store_name) document.getElementById('rStoreName').textContent = settings.store_name;
-                    if(settings.receipt_footer) document.getElementById('rFooter').textContent = settings.receipt_footer;
+                let data;
+
+                // 1. Check if it's an offline transaction ID
+                if (id.startsWith('OFF-')) {
+                    const offlineQueue = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
+                    // The ID might be stored as an offline ID or we might need to find it by some other property
+                    // In pos.html I passed OFF-timestamp to handlePostPayment, but the object in queue doesn't have an ID.
+                    // Let's assume we want the most recent one or match by a timestamp if we add one.
+                    // For now, let's just get the last one if it's an offline request.
+                    // Find the specific offline transaction
+                    data = offlineQueue.find(txn => txn.receiptNumber === id) || offlineQueue[offlineQueue.length - 1];
+                    if (!data) throw new Error("Offline transaction not found");
+
+                    // Format offline data to match API response
+                    data.created_at = data.timestamp ? new Date(data.timestamp).toISOString() : new Date().toISOString();
+                    data.cashier_name = JSON.parse(localStorage.getItem('currentUser') || '{}').name || 'Staff';
+                } else {
+                    // 2. Fetch Transaction from server
+                    const res = await fetch(`/transactions/receipt/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if(!res.ok) throw new Error("Transaction not found");
+                    data = await res.json();
                 }
 
-                // 2. Fetch Transaction
-                const res = await fetch(`/transactions/receipt/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
-                if(!res.ok) throw new Error("Transaction not found");
-                
-                const data = await res.json();
-                
+                // 1. Fetch Settings (for Store Name/Footer) - Only if online
+                if (navigator.onLine) {
+                    const settingsRes = await fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } });
+                    if(settingsRes.ok) {
+                        const settings = await settingsRes.json();
+                        if(settings.receipt_footer) document.getElementById('rFooter').textContent = settings.receipt_footer;
+                    }
+                }
+
                 // Populate Data
                 const date = new Date(data.created_at);
                 document.getElementById('rDate').textContent = date.toLocaleString();
