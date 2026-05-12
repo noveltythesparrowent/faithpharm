@@ -2508,10 +2508,13 @@
 
             if (!navigator.onLine) {
                 // OFFLINE MODE: Store in queue
-                const offlineId = 'OFF-' + Date.now();
-                transactionData.receiptNumber = (isReturn ? 'REF' : 'RCP') + Date.now();
+                const timestamp = Date.now();
+                const offlineId = 'OFF-' + timestamp;
+                transactionData.receiptNumber = (isReturn ? 'REF' : 'RCP') + timestamp;
                 transactionData.status = 'completed'; // Mark as complete since we can't do payment gateway offline
                 transactionData.isOffline = true;
+                transactionData.id = offlineId; // Store the ID for receipt lookup
+                transactionData.created_at = new Date().toISOString();
 
                 offlineQueue.push(transactionData);
                 localStorage.setItem('offline_transactions', JSON.stringify(offlineQueue));

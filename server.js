@@ -2159,10 +2159,10 @@ app.get('/products', authenticateToken, async (req, res) => {
         if (search) {
             queryParams.push(`%${search}%`);
             whereClause += ` AND (
-                p.name ILIKE $2 OR
-                p.barcode ILIKE $2 OR
-                p.category ILIKE $2 OR
-                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = p.barcode AND pb.batch_number ILIKE $2)
+                name ILIKE $2 OR
+                barcode ILIKE $2 OR
+                category ILIKE $2 OR
+                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = products.barcode AND pb.batch_number ILIKE $2)
             )`;
         }
 
@@ -2257,10 +2257,10 @@ app.get('/api/products', authenticateToken, async (req, res) => {
         if (search) {
             queryParams.push(`%${search}%`);
             whereClause += ` AND (
-                p.name ILIKE $2 OR
-                p.barcode ILIKE $2 OR
-                p.category ILIKE $2 OR
-                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = p.barcode AND pb.batch_number ILIKE $2)
+                name ILIKE $2 OR
+                barcode ILIKE $2 OR
+                category ILIKE $2 OR
+                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = products.barcode AND pb.batch_number ILIKE $2)
             )`;
         }
 
@@ -2390,10 +2390,10 @@ app.get('/api/products/full', authenticateToken, async (req, res) => {
         if (search) {
             queryParams.push(`%${search}%`);
             whereClause += ` AND (
-                p.name ILIKE $2 OR
-                p.barcode ILIKE $2 OR
-                p.category ILIKE $2 OR
-                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = p.barcode AND pb.batch_number ILIKE $2)
+                name ILIKE $2 OR
+                barcode ILIKE $2 OR
+                category ILIKE $2 OR
+                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = products.barcode AND pb.batch_number ILIKE $2)
             )`;
         }
 
