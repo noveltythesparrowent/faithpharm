@@ -1524,18 +1524,6 @@
                         
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             <div class="form-group" style="margin-bottom:0;">
-                                <label>Selling Unit</label>
-                                <input type="text" id="pSellingUnit" placeholder="e.g. Bottle">
-                            </div>
-                            <div class="form-group" style="margin-bottom:0;">
-                                <label>Packaging Unit</label>
-                                <input type="text" id="pPackagingUnit" placeholder="e.g. Box">
-                            </div>
-                            <div class="form-group" style="margin-bottom:0;">
-                                <label>Items per Package</label>
-                                <input type="number" id="pConversion" value="1" min="1">
-                            </div>
-                            <div class="form-group" style="margin-bottom:0;">
                                 <label>Reorder Level</label>
                                 <input type="number" id="pReorder" value="10">
                             </div>
@@ -2523,7 +2511,6 @@
             if (Number.isNaN(currentStock)) currentStock = 0;
             document.getElementById('pStock').value = currentStock;
             document.getElementById('pCostPrice').value = product.cost_price || '';
-            document.getElementById('pSellingUnit').value = product.selling_unit || 'Unit';
             
             // Calculate markup for display
             const cost = parseFloat(product.cost_price);
@@ -2537,8 +2524,6 @@
                 if(document.getElementById('pMarkup')) document.getElementById('pMarkup').value = '';
             }
 
-            document.getElementById('pPackagingUnit').value = product.packaging_unit || 'Box';
-            document.getElementById('pConversion').value = product.conversion_rate || 1;
             document.getElementById('pReorder').value = product.reorder_level || 10;
             
             // Populate batch fields from local product data (already mapped in loadInventory)
@@ -2619,9 +2604,6 @@
                 price: parseFloat(document.getElementById('pPrice').value),
                 stock: inputStock, // Note: Backend should handle total stock calculation if needed
                 cost_price: parseFloat(document.getElementById('pCostPrice').value) || 0,
-                selling_unit: document.getElementById('pSellingUnit').value || 'Unit',
-                packaging_unit: document.getElementById('pPackagingUnit').value || 'Box',
-                conversion_rate: parseInt(document.getElementById('pConversion').value) || 1,
                 reorder_level: parseInt(document.getElementById('pReorder').value) || 10,
                 track_batch: true,
                 track_expiry: true, 
