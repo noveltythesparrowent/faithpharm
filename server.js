@@ -7960,6 +7960,38 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', '*');
     next();
 });
+// ONE-TIME SEED ENDPOINT — Creates the CEO user on fresh database deployments
+// Protected by secret key. Call: POST /api/seed-admin with { secret, email, password, name, role }
+app.post('/api/seed-admin', async (req, res) => {
+    const { secret, email, password, name, role } = req.body;
+    const SEED_SECRET = process.env.SEED_SECRET || 'faithpharm_seed_2026';
+
+    if (secret !== SEED_SECRET) {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    try {
+        // Ensure tenants row exists
+        await pool.query(`INSERT INTO tenants (id, name) VALUES (1, 'Faith Pharmacy') ON CONFLICT (id) DO NOTHING`);
+
+        const hashed = await bcrypt.hash(password || 'Faith2026', 12);
+        const result = await pool.query(`
+            INSERT INTO users (name, email, password, role, status, tenant_id)
+            VALUES ($1, $2, $3, $4, 'Active', 1)
+            ON CONFLICT (email) DO UPDATE SET
+                password = EXCLUDED.password,
+                role = EXCLUDED.role,
+                status = 'Active',
+                deleted_at = NULL
+            RETURNING id, name, email, role
+        `, [name || 'CEO', email || 'ceo@faithway.com', hashed, role || 'ceo']);
+
+        res.json({ success: true, user: result.rows[0] });
+    } catch (err) {
+        console.error('Seed error:', err);
+        res.status(500).json({ message: err.message });
+    }
+});
 
 // In Vercel serverless environment, we don't call app.listen().
 // We export the app and Vercel handles the HTTP layer.
