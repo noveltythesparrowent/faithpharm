@@ -2195,7 +2195,8 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    const const data = await res.json(); categories = Array.isArray(data) ? data : [];
+                    const data = await res.json();
+                    categories = Array.isArray(data) ? data : [];
                     
                     // 1. Update Dropdowns & Data
                     window.allCategories = categories;
@@ -2972,7 +2973,10 @@
                 const res = await fetch('/api/suppliers', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (res.ok) const data = await res.json(); suppliers = Array.isArray(data) ? data : [];
+                if (res.ok) {
+                    const data = await res.json();
+                    suppliers = Array.isArray(data) ? data : [];
+                }
                 filteredSuppliers = [...suppliers];
             } catch (e) {
                 console.error("Error loading suppliers", e);
