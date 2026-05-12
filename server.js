@@ -86,6 +86,11 @@ try {
             .replace(/&&/g, '&')
             .replace(/[?&]$/, '');
 
+        // Force use of Supabase Transaction Pooler (Port 6543) if port 5432 is detected
+        if (cleanConnStr.includes('supabase.com') || cleanConnStr.includes('supabase.co')) {
+            cleanConnStr = cleanConnStr.replace(':5432', ':6543');
+        }
+
         if (cleanConnStr.includes(':6543')) {
             const separator = cleanConnStr.includes('?') ? '&' : '?';
             if (!cleanConnStr.includes('prepare_threshold')) {
@@ -96,7 +101,15 @@ try {
         try {
             console.log('Using DATABASE_URL (masked):', cleanConnStr.replace(/:(.*)@/, ':*****@'));
         } catch (e) { console.log('Using DATABASE_URL (masked)'); }
-        pool = new Pool({ connectionString: cleanConnStr, ssl });
+        
+        // Vercel/Serverless optimization: Use a smaller pool size and faster timeout
+        pool = new Pool({ 
+            connectionString: cleanConnStr, 
+            ssl,
+            max: 10, 
+            idleTimeoutMillis: 10000,
+            connectionTimeoutMillis: 5000 
+        });
     } else {
         throw new Error('No database configuration found in environment. Set DATABASE_URL or PGHOST/PGUSER/PGPASSWORD/PGDATABASE.');
     }
