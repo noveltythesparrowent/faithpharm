@@ -1942,6 +1942,22 @@
             const scanResult = document.getElementById('scanResult');
             scanResult.innerHTML = `🔍 Searching: <strong>${cleanVal}</strong>`;
 
+            // 1. Try local cache search first (fast and works offline)
+            // Match by exact barcode or name
+            const localMatch = products.find(p =>
+                (p.barcode && p.barcode.toString().trim() === cleanVal) ||
+                (p.name && p.name.toLowerCase().trim() === cleanVal.toLowerCase())
+            );
+
+            if (localMatch && !navigator.onLine) {
+                // If offline and we have a local match, use it immediately
+                addToCart(localMatch);
+                scanResult.innerHTML = `✅ Added (Offline): <strong>${localMatch.name}</strong>`;
+                setTimeout(() => { scanResult.innerHTML = ''; }, 2000);
+                return;
+            }
+
+            // 2. Try API for smart scanning (batches, etc.)
             try {
                 const token = localStorage.getItem('authToken');
                 const response = await fetch(`/api/scan/${encodeURIComponent(cleanVal)}`, {
@@ -1971,6 +1987,11 @@
                     }
 
                     setTimeout(() => { scanResult.innerHTML = ''; }, 2000);
+                } else if (localMatch) {
+                    // Fallback to local match if API fails but we have it locally
+                    addToCart(localMatch);
+                    scanResult.innerHTML = `✅ Added: <strong>${localMatch.name}</strong>`;
+                    setTimeout(() => { scanResult.innerHTML = ''; }, 2000);
                 } else {
                     const error = await response.json().catch(() => ({}));
                     scanResult.innerHTML = `❌ ${error.message || 'Not found'}`;
@@ -1978,7 +1999,12 @@
                 }
             } catch (err) {
                 console.error('Scan error:', err);
-                notify('Error searching for product/batch', 'error');
+                if (localMatch) {
+                    addToCart(localMatch);
+                    scanResult.innerHTML = `✅ Added: <strong>${localMatch.name}</strong>`;
+                } else {
+                    notify('Error searching for product/batch', 'error');
+                }
             }
         }
 
