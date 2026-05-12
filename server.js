@@ -2714,7 +2714,7 @@ app.post('/api/products/bulk', authenticateToken, upload.single('file'), async (
                     return '';
                 };
 
-                name = findColumn(['product name', 'name']).toString().trim();
+                name = findColumn(['drug name', 'medicine name', 'item name', 'product name', 'name']).toString().trim();
                 if (!name) {
                     continue; // Skip empty rows
                 }

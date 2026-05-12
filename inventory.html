@@ -802,8 +802,8 @@
                         <tr>
                             <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllStock" onchange="toggleAllStock(this)"></th>
                             <th>Barcode</th>
-                            <th>Product Name</th>
-                            <th>Category</th>
+                            <th>Drug / Medicine Name</th>
+                            <th>Type / Category</th>
                             <th>Price</th>
                             <th id="stockColumnHeader">Quantity</th>
                             <th>Batch Number</th>
@@ -834,7 +834,7 @@
             <div onclick="switchTab('overview')" class="back-link"><i class="fas fa-arrow-left"></i> Back to Inventory Menu</div>
             <div class="page-header">
                 <h3>Supplier Management</h3>
-                <button class="btn-add" onclick="openSupplierModal()"><i class="fas fa-user-plus"></i> Add Supplier</button>
+                <button class="btn-add" onclick="openSupplierModal()"><i class="fas fa-user-plus"></i> Add Manufacturer / Supplier</button>
             </div>
             <div style="margin-bottom: 20px;">
                 <input type="text" id="supplierSearch" placeholder="Search by name or contact..." onkeyup="filterSuppliers()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
@@ -843,7 +843,7 @@
                 <table class="supplier-table">
                     <thead>
                         <tr>
-                            <th>Supplier Name</th>
+                            <th>Manufacturer / Supplier Name</th>
                             <th>Contact Person</th>
                             <th>Phone/Email</th>
                             <th>Address</th>
@@ -1101,8 +1101,8 @@
         <!-- Barcode View Modal -->
         <div id="barcodeViewModal" class="modal">
             <div class="modal-content" style="text-align: center; width: 450px;">
-                <h3 id="bvName" style="margin-bottom: 5px;">Product Name</h3>
-                <p id="bvCategory" style="color: #666; margin-bottom: 20px; font-size: 14px;">Category</p>
+                <h3 id="bvName" style="margin-bottom: 5px;">Drug / Medicine Name</h3>
+                <p id="bvCategory" style="color: #666; margin-bottom: 20px; font-size: 14px;">Type / Category</p>
                 
                 <div style="background: #fff; padding: 20px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 20px; min-height: 120px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
                     <svg id="bvBarcodeSvg"></svg>
@@ -1133,7 +1133,7 @@
         <div id="tab-categories" class="tab-content">
             <div onclick="switchTab('overview')" class="back-link"><i class="fas fa-arrow-left"></i> Back to Inventory Menu</div>
             <div class="page-header">
-                <h3>Product Categories</h3>
+                <h3>Drug Groups / Categories</h3>
                 <button class="btn-add" onclick="openCategoryModal()"><i class="fas fa-plus"></i> Add Category</button>
             </div>
             <div style="margin-bottom: 20px;">
@@ -1236,7 +1236,7 @@
                     <table class="shelf-table">
                         <thead>
                             <tr>
-                                <th>Product</th>
+                                <th>Drug / Item</th>
                                 <th>Batch Number</th>
                                 <th>Expiry Date</th>
                                 <th>Current Stock</th>
@@ -1305,9 +1305,9 @@
                 <table class="negative-table">
                     <thead>
                         <tr>
-                            <th>Product Name</th>
+                            <th>Drug / Medicine Name</th>
                             <th>Barcode</th>
-                            <th>Category</th>
+                            <th>Type / Category</th>
                             <th style="text-align: center;">Current Stock</th>
                             <th style="text-align: center;">Units Owed</th>
                             <th style="text-align: right;">Debt Value</th>
@@ -1467,11 +1467,11 @@
                             <input type="text" id="pBarcode" required placeholder="Scan or type barcode">
                         </div>
                         <div class="form-group">
-                            <label>Product Name</label>
+                            <label>Drug / Medicine Name</label>
                             <input type="text" id="pName" required>
                         </div>
                         <div class="form-group">
-                            <label>Category</label>
+                            <label>Type / Category</label>
                             <select id="pCategory">
                                 <!-- Populated dynamically -->
                             </select>
