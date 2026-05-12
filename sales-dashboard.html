@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faith Pharmacy | Sales Dashboard</title>
+    <title>Faith Pharmacy | Sales</title>
     <link rel="icon" type="image/png" href="logo.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
@@ -16,10 +16,10 @@
         .sidebar { width: var(--sidebar-width); background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; display: flex; flex-direction: column; position: fixed; height: 100vh; height: 100dvh; overflow-y: auto; }
         .brand { padding: 25px; font-size: 24px; font-weight: 700; letter-spacing: 1px; border-bottom: 1px solid rgba(255,255,255,0.1); font-family: 'Montserrat', sans-serif; display: flex; align-items: center; gap: 10px; }
         .nav-links { flex: 1; padding-top: 20px; }
-        .nav-item { display: flex; align-items: center; padding: 15px 25px; color: rgba(255,255,255,0.7); text-decoration: none; transition: 0.3s; }
+        .nav-item { display: flex; align-items: center; padding: 8px 20px; font-size: 13px; color: rgba(255,255,255,0.7); text-decoration: none; transition: 0.3s; }
         .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: white; border-left: 4px solid var(--accent-color); }
         .nav-item i { margin-right: 15px; width: 20px; text-align: center; }
-        .nav-section { padding: 15px 25px 5px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); letter-spacing: 1px; text-transform: uppercase; }
+        .nav-section { padding: 8px 20px 2px; font-size: 10px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5); letter-spacing: 1px; text-transform: uppercase; }
         .user-profile { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; }
         .user-avatar { width: 40px; height: 40px; background: var(--secondary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
 
@@ -82,15 +82,15 @@
         <div class="nav-links">
             <a href="dashboard" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
             
-            <div class="nav-section">Sales & Finance</div>
-            <a href="sales-dashboard" class="nav-item active"><i class="fas fa-chart-pie"></i> Sales Dashboard</a>
-            <a href="profitability" class="nav-item"><i class="fas fa-file-invoice-dollar"></i> Profitability</a>
+            
+            <a href="sales-dashboard" class="nav-item active"><i class="fas fa-chart-pie"></i> Sales</a>
+            <a href="profitability" class="nav-item"><i class="fas fa-file-invoice-dollar"></i> Profits</a>
             <a href="promotions" class="nav-item"><i class="fas fa-tags"></i> Promotions</a>
 
-            <div class="nav-section">Operations</div>
-            <a href="pos-register" class="nav-item"><i class="fas fa-users"></i> Staff Management</a>
-            <a href="credit-customers" class="nav-item"><i class="fas fa-address-book"></i> Credit Clients</a>
-            <a href="inventory" class="nav-item"><i class="fas fa-warehouse"></i> Inventory & Supply Chain</a>
+            
+            <a href="pos-register" class="nav-item"><i class="fas fa-users"></i> Staff</a>
+            <a href="credit-customers" class="nav-item"><i class="fas fa-address-book"></i> Clients</a>
+            <a href="inventory" class="nav-item"><i class="fas fa-warehouse"></i> Inventory</a>
             <a href="reports" class="nav-item"><i class="fas fa-chart-line"></i> Reports</a>
             <a href="settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
         </div>
