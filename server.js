@@ -56,7 +56,7 @@ app.get('/favicon.ico', (req, res) => {
 // Database connection
 let pool;
 try {
-    const connStr = process.env.DATABASE_URL;
+    const connStr = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
     // Enable SSL for production environments or if connecting to a Supabase URL
     const isProduction = process.env.NODE_ENV === 'production';
