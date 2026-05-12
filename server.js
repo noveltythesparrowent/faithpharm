@@ -67,18 +67,7 @@ try {
     );
     const ssl = (isProduction || isSupabase) ? { rejectUnauthorized: false } : false;
 
-    if (process.env.PGHOST || process.env.PGUSER || process.env.PGPASSWORD || process.env.PGDATABASE) {
-        const poolConfig = {
-            host: process.env.PGHOST || 'localhost',
-            user: process.env.PGUSER || undefined,
-            password: process.env.PGPASSWORD || undefined,
-            database: process.env.PGDATABASE || undefined,
-            port: process.env.PGPORT ? parseInt(process.env.PGPORT) : undefined,
-            ssl
-        };
-        console.log('Using individual PG env vars for connection (masked).');
-        pool = new Pool(poolConfig);
-    } else if (connStr) {
+    if (connStr) {
         // Supabase Pooler (Port 6543) requires prepare_threshold=0 to avoid "prepared statement" errors
         // We also strip sslmode from the string to ensure our explicit ssl config object works
         let cleanConnStr = connStr.replace(/sslmode=[^&]*/g, '')
@@ -106,6 +95,17 @@ try {
             idleTimeoutMillis: 10000,
             connectionTimeoutMillis: 5000 
         });
+    } else if (process.env.PGHOST || process.env.PGUSER || process.env.PGPASSWORD || process.env.PGDATABASE) {
+        const poolConfig = {
+            host: process.env.PGHOST || 'localhost',
+            user: process.env.PGUSER || undefined,
+            password: process.env.PGPASSWORD || undefined,
+            database: process.env.PGDATABASE || undefined,
+            port: process.env.PGPORT ? parseInt(process.env.PGPORT) : undefined,
+            ssl
+        };
+        console.log('Using individual PG env vars for connection (masked).');
+        pool = new Pool(poolConfig);
     } else {
         throw new Error('No database configuration found in environment. Set DATABASE_URL or PGHOST/PGUSER/PGPASSWORD/PGDATABASE.');
     }
