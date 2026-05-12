@@ -1046,7 +1046,33 @@ async function initDb() {
         console.error('DB Init Error:', err);
     }
 }
-initDb();
+
+// Auto-seed default CEO user if database is empty (e.g. fresh Supabase project)
+async function seedDefaultUsers() {
+    try {
+        const existing = await pool.query('SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL');
+        if (parseInt(existing.rows[0].count) === 0) {
+            console.log('No users found — seeding default CEO account...');
+            const hashed = await bcrypt.hash('Faith2026', 12);
+            await pool.query(`
+                INSERT INTO users (name, email, password, role, status, tenant_id)
+                VALUES ('CEO', 'ceo@faithway.com', $1, 'ceo', 'Active', 1)
+                ON CONFLICT (email) DO UPDATE SET
+                    password = EXCLUDED.password,
+                    role = 'ceo',
+                    status = 'Active',
+                    deleted_at = NULL
+            `, [hashed]);
+            console.log('✅ Default CEO seeded: ceo@faithway.com / Faith2026');
+        } else {
+            console.log(`DB has ${existing.rows[0].count} user(s) — skipping default seed.`);
+        }
+    } catch (err) {
+        console.error('seedDefaultUsers error:', err.message);
+    }
+}
+
+initDb().then(() => seedDefaultUsers());
 console.log('initDb() called');
 
 // Security middleware
