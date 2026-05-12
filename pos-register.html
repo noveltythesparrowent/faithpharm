@@ -1179,6 +1179,13 @@
             filteredUsers = users.filter(user => {
                 if (user.status === 'Deleted') return false;
 
+                // Manager should not see CEO users
+                const currentUserStr = localStorage.getItem('currentUser');
+                if (currentUserStr) {
+                    const currentUser = JSON.parse(currentUserStr);
+                    if (currentUser.role === 'manager' && user.role === 'ceo') return false;
+                }
+
                 const username = (user.username || '').toLowerCase();
                 const fullName = (user.fullName || '').toLowerCase();
                 const employeeId = (user.employeeId || '').toLowerCase();
