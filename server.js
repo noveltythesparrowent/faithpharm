@@ -2158,7 +2158,12 @@ app.get('/products', authenticateToken, async (req, res) => {
 
         if (search) {
             queryParams.push(`%${search}%`);
-            whereClause += ` AND (name ILIKE $2 OR barcode ILIKE $2 OR category ILIKE $2)`;
+            whereClause += ` AND (
+                p.name ILIKE $2 OR
+                p.barcode ILIKE $2 OR
+                p.category ILIKE $2 OR
+                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = p.barcode AND pb.batch_number ILIKE $2)
+            )`;
         }
 
         let limitClause = '';
@@ -2251,7 +2256,12 @@ app.get('/api/products', authenticateToken, async (req, res) => {
 
         if (search) {
             queryParams.push(`%${search}%`);
-            whereClause += ` AND (name ILIKE $2 OR barcode ILIKE $2 OR category ILIKE $2)`;
+            whereClause += ` AND (
+                p.name ILIKE $2 OR
+                p.barcode ILIKE $2 OR
+                p.category ILIKE $2 OR
+                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = p.barcode AND pb.batch_number ILIKE $2)
+            )`;
         }
 
         let limitClause = '';
@@ -2379,7 +2389,12 @@ app.get('/api/products/full', authenticateToken, async (req, res) => {
 
         if (search) {
             queryParams.push(`%${search}%`);
-            whereClause += ` AND (name ILIKE $2 OR barcode ILIKE $2 OR category ILIKE $2)`;
+            whereClause += ` AND (
+                p.name ILIKE $2 OR
+                p.barcode ILIKE $2 OR
+                p.category ILIKE $2 OR
+                EXISTS (SELECT 1 FROM product_batches pb WHERE pb.product_barcode = p.barcode AND pb.batch_number ILIKE $2)
+            )`;
         }
 
         let limitClause = '';
@@ -5167,7 +5182,7 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
     if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
     if (!req.body) return res.status(400).json({ message: 'Invalid request: No body provided' });
 
-    const { items, total, refundAmount, paymentMethod, promoCode, discount, customerId, taxBreakdown, status, isReturn, originalTransactionId, returnItems } = req.body;
+    const { items, total, refundAmount, paymentMethod, promoCode, discount, customerId, taxBreakdown, status, isReturn, originalTransactionId, returnItems, receiptNumber: clientReceiptNumber } = req.body;
 
     try {
         const client = await pool.connect();
@@ -5186,12 +5201,12 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
 
             // 1. Verify products exist (but allow negative stock)
             for (const item of items) {
-                const res = await client.query('SELECT name FROM products WHERE barcode = $1 AND tenant_id = $2', [item.barcode, req.user.tenant_id]);
-                if (res.rows.length === 0) throw new Error(`Product ${item.barcode} not found`);
+                const res = await client.query('SELECT name FROM products WHERE (id = $1 OR barcode = $2) AND tenant_id = $3', [item.id, item.barcode, req.user.tenant_id]);
+                if (res.rows.length === 0) throw new Error(`Product ${item.name} (${item.barcode}) not found`);
             }
 
             // Create transaction
-            const receiptNumber = (isReturn ? 'REF' : 'RCP') + Date.now();
+            const receiptNumber = clientReceiptNumber || (isReturn ? 'REF' : 'RCP') + Date.now();
             const txnRes = await client.query(
                 `INSERT INTO transactions
                 (user_id, store_location, total_amount, original_total, current_total, payment_method, receipt_number, items, created_at, customer_id, customer_name, status, tax_breakdown, is_return, original_transaction_id, return_items)
@@ -5261,8 +5276,8 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
                     }
 
                     const batches = await client.query(
-                        'SELECT * FROM product_batches WHERE product_barcode = $1 ORDER BY expiry_date ASC FOR UPDATE',
-                        [item.barcode]
+                        'SELECT * FROM product_batches WHERE product_barcode = $1 AND branch_id = $2 ORDER BY expiry_date ASC FOR UPDATE',
+                        [item.barcode, req.user.store_id || 1]
                     );
 
                     let remainingQty = item.qty;
@@ -5292,10 +5307,20 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
 
                 // Update stock and batches
                 for (const item of items) {
-                    // Deduct from total stock and specific location using product ID (not barcode)
-                    // This prevents affecting other products sharing the same barcode
+                    // Resolve canonical product ID if not provided or to ensure tenant boundary
+                    let productId = item.id;
+                    const prodVerify = await client.query(
+                        'SELECT id, stock, stock_levels FROM products WHERE (id = $1 OR barcode = $2) AND tenant_id = $3 FOR UPDATE',
+                        [productId || -1, item.barcode, req.user.tenant_id]
+                    );
 
-                    await client.query(`
+                    if (prodVerify.rows.length === 0) {
+                        throw new Error(`Product ${item.name} (${item.barcode}) not found for this tenant`);
+                    }
+                    productId = prodVerify.rows[0].id;
+
+                    // Deduct from total stock and specific location using resolved product ID
+                    const updateRes = await client.query(`
                         UPDATE products 
                         SET stock = COALESCE(stock, 0) - $1,
                             stock_levels = jsonb_set(
@@ -5304,14 +5329,25 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
                                 to_jsonb(COALESCE((stock_levels->>$3::text)::int, 0) - $1)
                             )
                         WHERE id = $2
-                    `, [item.qty, item.id, storeLoc]);
+                    `, [item.qty, productId, storeLoc]);
 
-                    // FIFO/FEFO Batch Deduction
-                    // Get batches ordered by expiry (FEFO)
-                    const batches = await client.query(
-                        'SELECT * FROM product_batches WHERE product_barcode = $1 AND quantity > 0 ORDER BY expiry_date ASC FOR UPDATE',
-                        [item.barcode]
-                    );
+                    if (updateRes.rowCount === 0) {
+                        console.error(`Failed to update product stock: ID ${productId}, Branch ${storeLoc}`);
+                    }
+
+                    // FIFO/FEFO Batch Deduction (Branch Specific)
+                    // If a specific batchId is provided, use it. Otherwise fall back to FEFO.
+                    let batchQuery = 'SELECT * FROM product_batches WHERE product_barcode = $1 AND branch_id = $2 AND quantity > 0';
+                    let batchParams = [item.barcode, branchId];
+
+                    if (item.batch_id) {
+                        batchQuery += ' AND id = $3';
+                        batchParams.push(item.batch_id);
+                    }
+
+                    batchQuery += ' ORDER BY expiry_date ASC FOR UPDATE';
+
+                    const batches = await client.query(batchQuery, batchParams);
 
                     let remainingQty = item.qty;
                     for (const batch of batches.rows) {
@@ -5375,14 +5411,74 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
 });
 
 // Get batches for a specific product (for dropdowns)
+app.get('/api/scan/:val', authenticateToken, async (req, res) => {
+    const { val } = req.params;
+    try {
+        // 1. Try to find a batch match first (exact or partial)
+        const batchMatch = await pool.query(`
+            SELECT pb.*, p.name, p.price, p.category, p.stock_levels, p.id as product_id
+            FROM product_batches pb
+            JOIN products p ON pb.product_barcode = p.barcode
+            WHERE (pb.batch_number = $1 OR pb.batch_number ILIKE $2)
+            AND pb.branch_id = $3
+            AND pb.tenant_id = $4
+            AND pb.status = 'Active'
+            LIMIT 1
+        `, [val, `%${val}%`, req.user.store_id || 1, req.user.tenant_id || 1]);
+
+        if (batchMatch.rows.length > 0) {
+            const batch = batchMatch.rows[0];
+            return res.json({
+                type: 'batch',
+                product: {
+                    id: batch.product_id,
+                    barcode: batch.product_barcode,
+                    name: batch.name,
+                    price: batch.price,
+                    category: batch.category,
+                    stock_levels: batch.stock_levels
+                },
+                batch: {
+                    id: batch.id,
+                    batch_number: batch.batch_number,
+                    expiry_date: batch.expiry_date
+                }
+            });
+        }
+
+        // 2. Try to find a product match by barcode
+        const productMatch = await pool.query(`
+            SELECT * FROM products
+            WHERE (barcode = $1 OR barcode ILIKE $2)
+            AND tenant_id = $3
+            AND deleted_at IS NULL
+            LIMIT 5
+        `, [val, `%${val}%`, req.user.tenant_id || 1]);
+
+        if (productMatch.rows.length > 0) {
+            return res.json({
+                type: 'product',
+                products: productMatch.rows
+            });
+        }
+
+        res.status(404).json({ message: 'No product or batch found' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error during scan search' });
+    }
+});
+
+// Get batches for a specific product (for dropdowns)
 app.get('/api/batches/product/:barcode', authenticateToken, async (req, res) => {
     const { barcode } = req.params;
     try {
         const result = await pool.query(`
             SELECT * FROM product_batches 
             WHERE product_barcode = $1 AND quantity_available > 0 
+            AND branch_id = $2
             ORDER BY expiry_date ASC
-        `, [barcode]);
+        `, [barcode, req.user.store_id || 1]);
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -5760,17 +5856,26 @@ app.post('/api/transfers/:id/confirm', authenticateToken, async (req, res) => {
 app.get('/api/reports/low-stock/:branch_id', authenticateToken, async (req, res) => {
     const { branch_id } = req.params;
     try {
+        // Resolve branch name to query JSONB stock_levels
+        const bRes = await pool.query('SELECT name FROM branches WHERE id = $1', [branch_id]);
+        const branchName = bRes.rows[0]?.name || 'Main Warehouse';
+
         const result = await pool.query(`
-            SELECT p.barcode, p.name, p.category, p.stock, p.reorder_level,
-                (p.reorder_level - p.stock) as shortage,
-                ROUND((p.stock::decimal / NULLIF(p.reorder_level, 0)) * 100, 2) as stock_percentage
+            SELECT p.barcode, p.name, p.category,
+                COALESCE((p.stock_levels->>$1)::int, 0) as stock,
+                p.reorder_level,
+                (p.reorder_level - COALESCE((p.stock_levels->>$1)::int, 0)) as shortage,
+                ROUND((COALESCE((p.stock_levels->>$1)::int, 0)::decimal / NULLIF(p.reorder_level, 0)) * 100, 2) as stock_percentage
             FROM products p
-            WHERE p.stock < p.reorder_level
+            WHERE COALESCE((p.stock_levels->>$1)::int, 0) < p.reorder_level
+            AND p.tenant_id = $2
             ORDER BY shortage DESC
-        `);
-        await logActivity(req, 'VIEW_REPORT_LOW_STOCK', { branch_id });
+        `, [branchName, req.user.tenant_id]);
+
+        await logActivity(req, 'VIEW_REPORT_LOW_STOCK', { branch_id, branchName });
         res.json(result.rows);
     } catch (err) {
+        console.error('Low stock report error:', err);
         res.status(500).json({ message: 'Error generating report' });
     }
 });
