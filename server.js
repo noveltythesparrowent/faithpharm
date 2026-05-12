@@ -120,39 +120,40 @@ try {
 }
 
 // SaaS RLS Wrapper: Automatically inject `tenant_id` sandbox into all DB queries executed by Node.
-const originalPoolConnect = pool.connect.bind(pool);
-pool.connect = async function() {
-    const client = await originalPoolConnect();
-    
-    // Safely wrap the client just once per lifecycle
-    if (!client.__saas_patched) {
-        const originalClientQuery = client.query.bind(client);
-        client.query = async function(...args) {
-            const tenantId = tenantContext.getStore();
-            const configSet = tenantId !== undefined && tenantId !== null && tenantId !== '';
-            
-            if (configSet) {
-                await originalClientQuery(`SELECT set_config('app.current_tenant', $1, false)`, [tenantId.toString()]);
-            }
-            
-            try {
-                return await originalClientQuery(...args);
-            } finally {
-                if (configSet) {
-                    await originalClientQuery(`SELECT set_config('app.current_tenant', '', false)`);
-                }
-            }
-        };
-        client.__saas_patched = true;
-    }
-    return client;
-};
-
-// Use the native pool.query directly — pg Pool already manages connection acquire/release internally.
-// The previous override was causing triple connection usage per query (set_config + query + reset),
-// exhausting the connection pool and causing 500 errors under normal page loads.
+// We wrap pool.query safely to support both Promise and Callback signatures without breaking pg-pool.
 const originalPoolQuery = pool.query.bind(pool);
-pool.query = originalPoolQuery;
+pool.query = function(...args) {
+    const tenantId = tenantContext.getStore();
+    const configSet = tenantId !== undefined && tenantId !== null && tenantId !== '';
+    
+    // If no tenant is active, just run natively
+    if (!configSet) {
+        return originalPoolQuery(...args);
+    }
+    
+    // Extract callback if present
+    let callback = null;
+    let queryArgs = args;
+    if (args.length > 0 && typeof args[args.length - 1] === 'function') {
+        callback = args.pop();
+    }
+    
+    const promise = (async () => {
+        const client = await pool.connect();
+        try {
+            await client.query(`SELECT set_config('app.current_tenant', $1, false)`, [tenantId.toString()]);
+            return await client.query(...queryArgs);
+        } finally {
+            await client.query(`SELECT set_config('app.current_tenant', '', false)`);
+            client.release();
+        }
+    })();
+    
+    if (callback) {
+        promise.then(res => callback(null, res)).catch(err => callback(err));
+    }
+    return promise;
+};
 
 
 // Audit Logging Helper
