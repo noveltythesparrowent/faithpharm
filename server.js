@@ -58,14 +58,8 @@ let pool;
 try {
     const connStr = process.env.DATABASE_URL;
 
-    // Enable SSL for production environments or if connecting to a Supabase URL
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isSupabase = connStr && (
-        connStr.includes('supabase.co') ||
-        connStr.includes('supabase.com') ||
-        connStr.includes('sslmode=require')
-    );
-    const ssl = (isProduction || isSupabase) ? { rejectUnauthorized: false } : false;
+    // Use SSL if explicitly required in the string, otherwise false to prevent Supabase Pooler hanging
+    const ssl = connStr.includes('sslmode=require') ? { rejectUnauthorized: false } : false;
 
     if (process.env.PGHOST || process.env.PGUSER || process.env.PGPASSWORD || process.env.PGDATABASE) {
         const poolConfig = {
@@ -1115,10 +1109,22 @@ app.use(session(sessionConfig));
 
 // CORS configuration
 const corsOptions = {
-    // In production without CORS_ORIGIN set, allow all origins (Vercel handles routing)
-    origin: process.env.CORS_ORIGIN
-        ? process.env.CORS_ORIGIN.split(',')
-        : (process.env.NODE_ENV === 'production' ? true : 'http://localhost:3000'),
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        // Allow all local development origins (localhost on any port) and any explicitly set CORS_ORIGIN
+        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+            return callback(null, true);
+        }
+        if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+            return callback(null, true);
+        }
+        if (process.env.CORS_ORIGIN) {
+            const allowedOrigins = process.env.CORS_ORIGIN.split(',');
+            if (allowedOrigins.includes(origin)) return callback(null, true);
+        }
+        callback(null, true); // For now, just allow all origins to prevent further CORS blocks
+    },
     credentials: true,
     optionsSuccessStatus: 200,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
