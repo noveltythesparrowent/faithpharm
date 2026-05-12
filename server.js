@@ -86,10 +86,6 @@ try {
             .replace(/&&/g, '&')
             .replace(/[?&]$/, '');
 
-        // Force use of Supabase Transaction Pooler (Port 6543) if port 5432 is detected
-        if (cleanConnStr.includes('supabase.com') || cleanConnStr.includes('supabase.co')) {
-            cleanConnStr = cleanConnStr.replace(':5432', ':6543');
-        }
 
         if (cleanConnStr.includes(':6543')) {
             const separator = cleanConnStr.includes('?') ? '&' : '?';
